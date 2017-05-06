@@ -23,9 +23,16 @@
 import unittest
 from util import data_reader
 
+
 class DataReaderTest(unittest.TestCase):
     def testDataReader(self):
-        dataReader = data_reader.DataReader('path/to/test',163446,50,0.8,True);
+        dataReader = data_reader.DataReader('path/to/test', 163446, 5, 0.8, True);
+
+        # print dataReader.train_indices_set
+        # print dataReader.test_indices_set
+        for i in range(200):
+            x, y = dataReader.next_batch(phase_train=True)
+            x, y = dataReader.next_batch(phase_train=False)
 
 
 if __name__ == '__main__':

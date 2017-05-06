@@ -52,17 +52,26 @@ class DataReader():
         self.reproducible = reproducible
         self.size_train = image_number * train_test_ratio
         self.size_test = image_number - self.size_train
-        self.train_batches = int(np.floor(self.size_train / batch_size))
-        self.test_batches = int(np.floor(self.size_test / batch_size))
+        self.train_batches_number = int(np.floor(self.size_train / batch_size))
+        self.test_batches_number = int(np.floor(self.size_test / batch_size))
+        self.image_used = (self.train_batches_number + self.test_batches_number) * batch_size
+        self.image_ignored = self.image_number - self.image_used
         print(
-            'Initializing Data Reader from: %s\nReproducible: %s\nImage number: %d\nBatch size: %d\nTrain batches: %d\nTest batches: %d\n' % (
-                self.data_dir, self.reproducible.__str__(), self.image_number, self.batch_size, self.train_batches,
-                self.test_batches))
+            'Initializing Data Reader from: %s\nReproducible: %s\nImage number: %d (%d used, %d abandoned)\nBatch size: %d\nTrain batches: %d\nTest batches: %d\n' % (
+                self.data_dir, self.reproducible.__str__(), self.image_number, self.image_used, self.image_ignored,
+                self.batch_size, self.train_batches_number,
+                self.test_batches_number))
 
-        self.shuffled_index = range(self.image_number)
-        print self.shuffled_index
+        self.shuffled_index = range(self.image_used)
         np.random.shuffle(self.shuffled_index)
-        print self.shuffled_index
+        # stored to reshuffle in next epoch
+        self.train_indices_set = self.shuffled_index[0:self.train_batches_number * self.batch_size]
+        self.test_indices_set = self.shuffled_index[self.train_batches_number * self.batch_size:]
+        self.train_batches = np.reshape(self.train_indices_set, [-1, self.batch_size])
+        self.test_batches = np.reshape(self.test_indices_set, [-1, self.batch_size])
+        self.epoch = 1
+        self.current_train_batch_index = 0
+        self.current_test_batch_index = 0
         # if image_number % batch_number:
         #     raise Exception('${image_number}[%d]/${batch_number}[%d] must be a Integer.' % (image_number, batch_number))
         # else:
@@ -80,40 +89,41 @@ class DataReader():
         #     self.current_batch_index = 0
         #     self.epoch = 1;
 
-    def next_batch(self):
+    def next_batch(self, phase_train=True):
         image_data = []
         label_data = []
-        if self.current_batch_index >= self.batch_number:
-            np.random.shuffle(self.image_index)
-            self.shuffled_batch = self.image_index.reshape(self.batch_number, self.batch_size)
-            self.current_batch_index = 0
-            string = op.join('------------ finished ', str(self.epoch))
-            string = op.join(string, ' epoch---------------')
-            print(string)
-            self.epoch += 1
-        for i in range(self.batch_size):
-            file_name = self.data_dir + '/' + str(self.shuffled_batch[self.current_batch_index, i]) + '.mat'
-            current_mat = sio.loadmat(file_name)
-            image_data = np.append(image_data, current_mat['im'])
-            label_data = np.append(label_data, current_mat['label'])
-        image_data = image_data.reshape([self.batch_size, image_data.size / self.batch_size])
-        label_data = label_data.reshape([self.batch_size, label_data.size / self.batch_size])
-        self.current_batch_index += 1
+        if phase_train:
+            if self.current_train_batch_index >= self.train_batches_number:
+                np.random.shuffle(self.train_indices_set)
+                self.train_batches = np.reshape(self.train_indices_set, [-1, self.batch_size])
+                self.current_train_batch_index = 0
+                string = op.join('------------ finished ', str(self.epoch))
+                string = op.join(string, ' epoch---------------')
+                print(string)
+                self.epoch += 1
+            for i in range(self.batch_size):
+                file_name = self.data_dir + '/' + str(
+                    self.train_batches[self.current_train_batch_index][i] + 1) + '.mat'
+                with sio.loadmat(file_name) as mat_data:
+                    image_data = np.append(image_data, mat_data['im'])
+                    label_data = np.append(label_data, mat_data['label'])
+            image_data = np.reshape(image_data,[self.batch_size, image_data.size / self.batch_size])
+            label_data = np.reshape(label_data,[self.batch_size, label_data.size / self.batch_size])
+            self.current_train_batch_index += 1
+        else:
+            if self.current_test_batch_index >= self.test_batches_number:
+                np.random.shuffle(self.test_indices_set)
+                self.test_batches = np.reshape(self.test_indices_set, [-1, self.batch_size])
+                self.current_test_batch_index = 0
+            for i in range(self.batch_size):
+                file_name = self.data_dir + '/' + str(self.test_batches[self.current_test_batch_index][i] + 1) + '.mat'
+                with sio.loadmat(file_name) as mat_data:
+                    image_data = np.append(image_data, mat_data['im'])
+                    label_data = np.append(label_data,mat_data['label'])
+            image_data = np.reshape(image_data,[self.batch_size,image_data.size/self.batch_size])
+            label_data = np.reshape(label_data,[self.batch_size,label_data.size/self.batch_size])
+            self.current_test_batch_index += 1
         return image_data, label_data
 
-    def get_test(self, size):
-        image_data = []
-        label_data = []
-        if size > self.image_number:
-            raise Exception('input ${size}[%d] larger than test ${image_image}[%d]' % (size, self.image_number))
-        else:
-            np.random.shuffle(self.image_index)
-            for i in range(size):
-                file_name = self.data_dir + "/" + str(self.image_index[i]) + ".mat"
-                current_mat = sio.loadmat(file_name)
-                image_data = np.append(image_data, current_mat['im'])
-                label_data = np.append(label_data, current_mat['label'])
-            image_data = image_data.reshape(size, image_data.size / size)
-            label_data = label_data.reshape(size, label_data.size / size)
-            self.current_batch_index += 1
-            return image_data, label_data
+    def select_quartet(self,embeddings):
+        return 1
