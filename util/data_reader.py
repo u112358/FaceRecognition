@@ -126,4 +126,6 @@ class DataReader():
         return image_data, label_data
 
     def select_quartet(self,embeddings):
+        # random sample quartet which violate the triplet relationship
+        # consider whether it is ok to extract different features in one network
         return 1
