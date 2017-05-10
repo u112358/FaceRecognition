@@ -22,17 +22,20 @@
 
 import unittest
 from util import data_reader
-
+from scipy import io as sio
+import numpy as np
 
 class DataReaderTest(unittest.TestCase):
     def testDataReader(self):
-        dataReader = data_reader.DataReader('path/to/test', 163446, 5, 0.8, True);
+        batch_size = 5
+        dataReader = data_reader.DataReader('/home/bingzhang/Documents/Dataset/CACD/data', 163446, batch_size, 0.8, True)
 
         # print dataReader.train_indices_set
         # print dataReader.test_indices_set
-        for i in range(200):
+        for i in range(2):
             x, y = dataReader.next_batch(phase_train=True)
-            x, y = dataReader.next_batch(phase_train=False)
+        x = np.reshape(x,[batch_size,250,250,3])
+        sio.savemat('testDataReader.mat',{'im':x,'label':y})
 
 
 if __name__ == '__main__':

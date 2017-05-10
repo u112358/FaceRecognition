@@ -57,7 +57,7 @@ class DataReader():
         self.image_used = (self.train_batches_number + self.test_batches_number) * batch_size
         self.image_ignored = self.image_number - self.image_used
         print(
-            'Initializing Data Reader from: %s\nReproducible: %s\nImage number: %d (%d used, %d abandoned)\nBatch size: %d\nTrain batches: %d\nTest batches: %d\n' % (
+            'Initializing Data Reader From: %s\nReproducible: %s\nImage number: %d (%d used, %d abandoned)\nBatch size: %d\nTrain batches: %d\nTest batches: %d\n' % (
                 self.data_dir, self.reproducible.__str__(), self.image_number, self.image_used, self.image_ignored,
                 self.batch_size, self.train_batches_number,
                 self.test_batches_number))
@@ -104,11 +104,11 @@ class DataReader():
             for i in range(self.batch_size):
                 file_name = self.data_dir + '/' + str(
                     self.train_batches[self.current_train_batch_index][i] + 1) + '.mat'
-                with sio.loadmat(file_name) as mat_data:
-                    image_data = np.append(image_data, mat_data['im'])
-                    label_data = np.append(label_data, mat_data['label'])
-            image_data = np.reshape(image_data,[self.batch_size, image_data.size / self.batch_size])
-            label_data = np.reshape(label_data,[self.batch_size, label_data.size / self.batch_size])
+                mat_data = sio.loadmat(file_name)
+                image_data = np.append(image_data, mat_data['im'])
+                label_data = np.append(label_data, mat_data['label'])
+            image_data = np.reshape(image_data,[self.batch_size, -1])
+            label_data = np.reshape(label_data,[self.batch_size, -1])
             self.current_train_batch_index += 1
         else:
             if self.current_test_batch_index >= self.test_batches_number:
@@ -117,11 +117,11 @@ class DataReader():
                 self.current_test_batch_index = 0
             for i in range(self.batch_size):
                 file_name = self.data_dir + '/' + str(self.test_batches[self.current_test_batch_index][i] + 1) + '.mat'
-                with sio.loadmat(file_name) as mat_data:
-                    image_data = np.append(image_data, mat_data['im'])
-                    label_data = np.append(label_data,mat_data['label'])
-            image_data = np.reshape(image_data,[self.batch_size,image_data.size/self.batch_size])
-            label_data = np.reshape(label_data,[self.batch_size,label_data.size/self.batch_size])
+                mat_data = sio.loadmat(file_name)
+                image_data = np.append(image_data, mat_data['im'])
+                label_data = np.append(label_data,mat_data['label'])
+            image_data = np.reshape(image_data,[self.batch_size,-1])
+            label_data = np.reshape(label_data,[self.batch_size,-1])
             self.current_test_batch_index += 1
         return image_data, label_data
 
