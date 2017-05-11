@@ -47,7 +47,7 @@ class FaceClassifier():
         self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
         self.model_dir = os.path.join(os.path.expanduser('models'), self.subdir)
         self.learning_rate = 0.0001
-        self.batch_size = 50
+        self.batch_size = 40
         self.max_epoch = 20
         self.data_dir = '/home/bingzhang/Documents/Dataset/CACD/data'
         self.image_in = tf.placeholder(tf.float32, [self.batch_size, 250, 250, 3])
@@ -55,7 +55,7 @@ class FaceClassifier():
         self.net = self._build_net()
         self.loss = self._build_loss()
         self.accuracy = self._build_accuracy()
-        self.opt = tf.train.GradientDescentOptimizer(0.01).minimize(self.loss)
+        self.opt = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
 
     def _build_net(self):
         # convolution layers
@@ -66,7 +66,8 @@ class FaceClassifier():
                                       initializer=tf.truncated_normal_initializer(stddev=1e-2))
             biases = tf.get_variable('biases', [2000], dtype=tf.float32, initializer=tf.constant_initializer())
             output = tf.add(tf.matmul(net, weights), biases, name=scope.name)
-
+            nb.variable_summaries(weights,'weights')
+            nb.variable_summaries(biases,'biases')
         return output
 
     def _build_loss(self):
@@ -119,6 +120,8 @@ class FaceClassifier():
                     data_reader.current_train_batch_index, data_reader.epoch, duration, err, acc))
                 writer_train.add_summary(sum, step)
             if step % 3268 == 0:
+                if not os.path.exists(self.model_dir):
+                    os.makedirs(self.model_dir)
                 saver.save(self.sess, self.model_dir, step)
 
             step += 1;
