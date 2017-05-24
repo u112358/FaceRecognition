@@ -27,7 +27,9 @@ from datetime import datetime
 import time
 from util import net_builder as nb
 from util import data_reader as dr
-
+import tensorflow.contrib.slim as slim
+import argparse
+import sys
 
 class FaceClassifier():
     """Summary of class here.
@@ -40,7 +42,7 @@ class FaceClassifier():
         eggs: An integer count of the eggs we have laid.
     """
 
-    def __init__(self, sess=tf.Session()):
+    def __init__(self, sess=tf.Session(), server=False):
         self.sess = sess
         self.root_dir = os.getcwd()
         self.subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
@@ -48,27 +50,32 @@ class FaceClassifier():
         self.model_dir = os.path.join(os.path.expanduser('models'), self.subdir)
         self.learning_rate = 0.0001
         self.batch_size = 40
+        self.class_num = 2000
         self.max_epoch = 20
-        self.data_dir = '/home/bingzhang/Documents/Dataset/CACD/data'
+        self.data_dir = '/scratch/BingZhang/dataset/CACD' if server else '/home/bingzhang/Documents/Dataset/CACD/data'
         self.image_in = tf.placeholder(tf.float32, [self.batch_size, 250, 250, 3])
-        self.label_in = tf.placeholder(tf.float32, [self.batch_size, 2000])
+        self.label_in = tf.placeholder(tf.float32, [self.batch_size, self.class_num])
         self.net = self._build_net()
         self.loss = self._build_loss()
         self.accuracy = self._build_accuracy()
-        self.opt = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
+        self.opt = tf.train.AdamOptimizer(self.learning_rate,beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.loss)
 
     def _build_net(self):
         # convolution layers
-        net, _ = nb.nn1_forward_propagation(images=self.image_in, phase_train=True, weight_decay=0.0)
+        net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
+                              weight_decay=0.0)
 
-        with tf.variable_scope('output') as scope:
-            weights = tf.get_variable('weights', [1024, 2000], dtype=tf.float32,
-                                      initializer=tf.truncated_normal_initializer(stddev=1e-2))
-            biases = tf.get_variable('biases', [2000], dtype=tf.float32, initializer=tf.constant_initializer())
-            output = tf.add(tf.matmul(net, weights), biases, name=scope.name)
-            nb.variable_summaries(weights,'weights')
-            nb.variable_summaries(biases,'biases')
-        return output
+        # with tf.variable_scope('output') as scope:
+        #     weights = tf.get_variable('weights', [1024, self.class_num], dtype=tf.float32,
+        #                               initializer=tf.truncated_normal_initializer(stddev=1e-2))
+        #     biases = tf.get_variable('biases', [self.class_num], dtype=tf.float32, initializer=tf.constant_initializer())
+        #     output = tf.add(tf.matmul(net, weights), biases, name=scope.name)
+        #     nb.variable_summaries(weights,'weights')
+        #     nb.variable_summaries(biases,'biases')
+        logits = slim.fully_connected(net, self.class_num, activation_fn=None,
+                                      weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
+                                      weights_regularizer=slim.l2_regularizer(0.0), scope='logits', reuse=False)
+        return logits
 
     def _build_loss(self):
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
@@ -127,10 +134,18 @@ class FaceClassifier():
             step += 1;
 
 
+def parse_arguments(argv):
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--server', type=bool,
+                        help='whether run on a server', default=False)
+
+    return parser.parse_args(argv)
+
 if __name__ == '__main__':
     config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     config.gpu_options.allow_growth = True
     this_session = tf.Session(config=config)
     sess = tf.Session()
-    model = FaceClassifier(sess=this_session)
+    model = FaceClassifier(sess=this_session,server=parse_arguments(sys.argv[1:]).server)
     model.train()
