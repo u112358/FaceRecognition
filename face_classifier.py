@@ -79,8 +79,8 @@ class FaceClassifier():
 
     def _build_loss(self):
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
-            logits=self.net, labels=self.label_in, name='cross_entropy_per_example')
-        loss = tf.reduce_mean(cross_entropy, name='cross_entropy')
+            logits=self.net, labels=self.label_in, name='cross_entropy')
+        loss = tf.reduce_mean(cross_entropy, name='cross_entropy_mean')
 
         tf.summary.scalar('loss', loss)
 
