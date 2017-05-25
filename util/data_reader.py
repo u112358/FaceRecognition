@@ -39,7 +39,7 @@ class DataReader():
 
     """
 
-    def __init__(self, data_dir, dictionary, image_number, batch_size, train_test_ratio, reproducible=True):
+    def __init__(self, data_dir, image_number, batch_size, train_test_ratio, reproducible=True):
         """
 
         """
@@ -108,7 +108,7 @@ class DataReader():
                 image_data = np.append(image_data, mat_data['im'])
                 label_data = np.append(label_data, mat_data['label'])
             image_data = np.reshape(image_data,[self.batch_size, -1])
-            label_data = np.reshape(label_data,[self.batch_size, -1])
+            label_data = np.reshape(label_data,[self.batch_size])
             self.current_train_batch_index += 1
         else:
             if self.current_test_batch_index >= self.test_batches_number:
@@ -121,7 +121,7 @@ class DataReader():
                 image_data = np.append(image_data, mat_data['im'])
                 label_data = np.append(label_data,mat_data['label'])
             image_data = np.reshape(image_data,[self.batch_size,-1])
-            label_data = np.reshape(label_data,[self.batch_size,-1])
+            label_data = np.reshape(label_data,[self.batch_size])
             self.current_test_batch_index += 1
         return image_data, label_data
 
@@ -144,7 +144,7 @@ class DataReader():
                 image_data = np.append(image_data, mat_data['im'])
                 label_data = np.append(label_data, mat_data['label'])
             image_data = np.reshape(image_data, [self.batch_size, -1])
-            label_data = np.reshape(label_data, [self.batch_size, -1])
+            label_data = np.reshape(label_data, [self.batch_size])
             self.current_train_batch_index += 1
         else:
             if self.current_test_batch_index >= self.test_batches_number:
@@ -157,7 +157,7 @@ class DataReader():
                 image_data = np.append(image_data, mat_data['im'])
                 label_data = np.append(label_data, mat_data['label'])
             image_data = np.reshape(image_data, [self.batch_size, -1])
-            label_data = np.reshape(label_data, [self.batch_size, -1])
+            label_data = np.reshape(label_data, [self.batch_size])
             self.current_test_batch_index += 1
         return image_data, label_data
 

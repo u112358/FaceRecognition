@@ -52,9 +52,9 @@ class FaceClassifier():
         self.batch_size = 40
         self.class_num = 2000
         self.max_epoch = 20
-        self.data_dir = '/scratch/BingZhang/dataset/CACD' if server else '/home/bingzhang/Documents/Dataset/CACD/data'
+        self.data_dir = './data' if server else '/home/bingzhang/Documents/Dataset/CACD/data'
         self.image_in = tf.placeholder(tf.float32, [self.batch_size, 250, 250, 3])
-        self.label_in = tf.placeholder(tf.float32, [self.batch_size, self.class_num])
+        self.label_in = tf.placeholder(tf.float32, [self.batch_size])
         self.net = self._build_net()
         self.loss = self._build_loss()
         self.accuracy = self._build_accuracy()
@@ -78,8 +78,9 @@ class FaceClassifier():
         return logits
 
     def _build_loss(self):
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
-            logits=self.net, labels=self.label_in, name='cross_entropy')
+        label_int64 = tf.cast(self.label_in,tf.int64)
+        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            logits=self.net, labels=label_int64, name='cross_entropy')
         loss = tf.reduce_mean(cross_entropy, name='cross_entropy_mean')
 
         tf.summary.scalar('loss', loss)
@@ -89,7 +90,7 @@ class FaceClassifier():
     def _build_accuracy(self):
         with tf.name_scope('accuracy'):
             with tf.name_scope('correct_prediction'):
-                correct_prediction = tf.equal(tf.argmax(self.net, 1), tf.argmax(self.label_in, 1))
+                correct_prediction = tf.equal(tf.argmax(self.net, 1),tf.cast(self.label_in,tf.int64))
             with tf.name_scope('accuracy'):
                 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
                 tf.summary.scalar('accuracy', accuracy)
@@ -106,7 +107,7 @@ class FaceClassifier():
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
         while data_reader.epoch < self.max_epoch:
-            if step % 10 == 0:
+            if step % 100 == 0:
                 images, label = data_reader.next_batch(phase_train=False)
                 reshaped_image = np.reshape(images, [self.batch_size, 250, 250, 3])
                 feed_dict = {self.image_in: reshaped_image, self.label_in: label}
