@@ -47,12 +47,12 @@ hwait = waitbar(0,'formating mat files');
 for i = 1:total_num
     str=['formating mat files:   ',num2str(i/total_num*100),'%'];
     waitbar(i/total_num,hwait,str);
-    filename = ['./CACD2000/',celebrityImageData.name{i}];
+    filename = ['../../dataset/CACD2000/',celebrityImageData.name{i}];
     im = imread(filename);
     im = double(im);
     im = im/max(max(max(im)));
-    label=celebrityImageData.age(i)-1;
-    path = sprintf('./data_with_dense_label/%d.mat',i);
+    label=celebrityImageData.identity(i)-1;
+    path = sprintf('../data/%d.mat',i);
     save(path, 'im','label','-v6');
 end
 %%
