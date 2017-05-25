@@ -39,7 +39,7 @@ class DataReader():
 
     """
 
-    def __init__(self, data_dir, dictionary, image_number, batch_size, train_test_ratio, reproducible=True):
+    def __init__(self, data_dir, image_number, batch_size, train_test_ratio, reproducible=True):
         """
 
         """
@@ -125,41 +125,9 @@ class DataReader():
             self.current_test_batch_index += 1
         return image_data, label_data
 
-    def next_batch_by_file_name(self, phase_train=True):
-        image_data = []
-        label_data = []
-        if phase_train:
-            if self.current_train_batch_index >= self.train_batches_number:
-                np.random.shuffle(self.train_indices_set)
-                self.train_batches = np.reshape(self.train_indices_set, [-1, self.batch_size])
-                self.current_train_batch_index = 0
-                string = op.join('------------ finished ', str(self.epoch))
-                string = op.join(string, ' epoch---------------')
-                print(string)
-                self.epoch += 1
-            for i in range(self.batch_size):
-                file_name = self.data_dir + '/' + str(
-                    self.train_batches[self.current_train_batch_index][i] + 1) + '.mat'
-                mat_data = sio.loadmat(file_name)
-                image_data = np.append(image_data, mat_data['im'])
-                label_data = np.append(label_data, mat_data['label'])
-            image_data = np.reshape(image_data, [self.batch_size, -1])
-            label_data = np.reshape(label_data, [self.batch_size, -1])
-            self.current_train_batch_index += 1
-        else:
-            if self.current_test_batch_index >= self.test_batches_number:
-                np.random.shuffle(self.test_indices_set)
-                self.test_batches = np.reshape(self.test_indices_set, [-1, self.batch_size])
-                self.current_test_batch_index = 0
-            for i in range(self.batch_size):
-                file_name = self.data_dir + '/' + str(self.test_batches[self.current_test_batch_index][i] + 1) + '.mat'
-                mat_data = sio.loadmat(file_name)
-                image_data = np.append(image_data, mat_data['im'])
-                label_data = np.append(label_data, mat_data['label'])
-            image_data = np.reshape(image_data, [self.batch_size, -1])
-            label_data = np.reshape(label_data, [self.batch_size, -1])
-            self.current_test_batch_index += 1
-        return image_data, label_data
+
+
+
 
     def select_quartet(self,embeddings):
         # random sample quartet which violate the triplet relationship

@@ -26,10 +26,11 @@ import numpy as np
 from datetime import datetime
 import time
 from util import net_builder as nb
-from util import data_reader as dr
+from util import database_reader as dbr
 import tensorflow.contrib.slim as slim
 import argparse
 import sys
+import scipy.io as sio
 
 class FaceClassifier():
     """Summary of class here.
@@ -52,9 +53,9 @@ class FaceClassifier():
         self.batch_size = 40
         self.class_num = 2000
         self.max_epoch = 20
-        self.data_dir = '/scratch/BingZhang/dataset/CACD' if server else '/home/bingzhang/Documents/Dataset/CACD/data'
+        self.data_dir = '/scratch/BingZhang/dataset/CACD' if server else '/home/bingzhang/Documents/Dataset/CACD/Processed_Aligned'
         self.image_in = tf.placeholder(tf.float32, [self.batch_size, 250, 250, 3])
-        self.label_in = tf.placeholder(tf.float32, [self.batch_size, self.class_num])
+        self.label_in = tf.placeholder(tf.float32, [self.batch_size])
         self.net = self._build_net()
         self.loss = self._build_loss()
         self.accuracy = self._build_accuracy()
@@ -64,7 +65,7 @@ class FaceClassifier():
         # convolution layers
         net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
                               weight_decay=0.0)
-
+        # net, _ = nb.nn1_forward_propagation(images=self.image_in,phase_train=True,weight_decay=0.0)
         # with tf.variable_scope('output') as scope:
         #     weights = tf.get_variable('weights', [1024, self.class_num], dtype=tf.float32,
         #                               initializer=tf.truncated_normal_initializer(stddev=1e-2))
@@ -76,10 +77,11 @@ class FaceClassifier():
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
                                       weights_regularizer=slim.l2_regularizer(0.0), scope='logits', reuse=False)
         return logits
+        # return output
 
     def _build_loss(self):
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
-            logits=self.net, labels=self.label_in, name='cross_entropy')
+        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            logits=self.net, labels=tf.cast(self.label_in,tf.int64), name='cross_entropy')
         loss = tf.reduce_mean(cross_entropy, name='cross_entropy_mean')
 
         tf.summary.scalar('loss', loss)
@@ -89,7 +91,7 @@ class FaceClassifier():
     def _build_accuracy(self):
         with tf.name_scope('accuracy'):
             with tf.name_scope('correct_prediction'):
-                correct_prediction = tf.equal(tf.argmax(self.net, 1), tf.argmax(self.label_in, 1))
+                correct_prediction = tf.equal(tf.argmax(self.net, 1), tf.cast(self.label_in,tf.int64))
             with tf.name_scope('accuracy'):
                 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
                 tf.summary.scalar('accuracy', accuracy)
@@ -99,39 +101,60 @@ class FaceClassifier():
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
         saver = tf.train.Saver()
-        data_reader = dr.DataReader(self.data_dir, 163446, self.batch_size, 0.8, reproducible=True)
+        database_reader = dbr.DatabaseReader(self.data_dir, self.batch_size, 0.8, reproducible=True)
         tf.summary.image('image', self.image_in, 10)
         summary_op = tf.summary.merge_all()
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
-        while data_reader.epoch < self.max_epoch:
+        while database_reader.epoch < self.max_epoch:
             if step % 10 == 0:
-                images, label = data_reader.next_batch(phase_train=False)
-                reshaped_image = np.reshape(images, [self.batch_size, 250, 250, 3])
-                feed_dict = {self.image_in: reshaped_image, self.label_in: label}
+                images, label = database_reader.next_batch(phase_train=False)
+                feed_dict = {self.image_in: images, self.label_in: label}
                 start_time = time.time()
                 err, acc, sum = self.sess.run([self.loss, self.accuracy, summary_op], feed_dict=feed_dict)
                 duration = time.time() - start_time
                 print('Epoch:%d/%d\tTime:%.3f\tLoss:%2.4f\tAcc:%2.4f\t@[TEST]' % (
-                    data_reader.current_test_batch_index, data_reader.epoch, duration, err, acc))
+                    database_reader.current_test_batch_index, database_reader.epoch, duration, err, acc))
                 writer_test.add_summary(sum, step)
             else:
-                images, label = data_reader.next_batch(phase_train=True)
-                reshaped_image = np.reshape(images, [self.batch_size, 250, 250, 3])
-                feed_dict = {self.image_in: reshaped_image, self.label_in: label}
+                images, label = database_reader.next_batch(phase_train=True)
+                feed_dict = {self.image_in: images, self.label_in: label}
                 start_time = time.time()
                 err, acc, sum, _ = self.sess.run([self.loss, self.accuracy, summary_op, self.opt], feed_dict=feed_dict)
                 duration = time.time() - start_time
                 print('Epoch:%d/%d\tTime:%.3f\tLoss:%2.4f\tAcc:%2.4f\t' % (
-                    data_reader.current_train_batch_index, data_reader.epoch, duration, err, acc))
+                    database_reader.current_train_batch_index, database_reader.epoch, duration, err, acc))
                 writer_train.add_summary(sum, step)
-            if step % 3268 == 0:
+            if step % database_reader.train_batches_number== 0:
                 if not os.path.exists(self.model_dir):
                     os.makedirs(self.model_dir)
                 saver.save(self.sess, self.model_dir, step)
 
-            step += 1;
+            step += 1
+
+    # def extract_feature(self):
+    #     init_op = tf.global_variables_initializer()
+    #     self.sess.run(init_op)
+    #     saver = tf.train.Saver()
+    #     saver.restore(self.sess,'./models/20170511-123259-3268')
+    #     tf.summary.image('image', self.image_in, 10)
+    #     step = 1
+    #     age_a = []
+    #     while step < 163446:
+    #         file_name = self.data_dir + '/' + str(step + 1) + '.mat'
+    #         mat_data = sio.loadmat(file_name)
+    #         image_data = mat_data['im']
+    #         label = mat_data['label']
+    #         reshaped_image = np.reshape(image_data, [self.batch_size, 250, 250, 3])
+    #         feed_dict = {self.image_in: reshaped_image, self.label_in: label}
+    #         age = self.sess.run(self.net, feed_dict=feed_dict)
+    #         np.append(age_a,age)
+    #         print('extracting %d feature' % step)
+    #         step += 1
+    #     sio.savemat('age_out.mat',{'result':age})
+
+
 
 
 def parse_arguments(argv):
