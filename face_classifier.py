@@ -48,8 +48,8 @@ class FaceClassifier():
         self.subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
         self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
         self.model_dir = os.path.join(os.path.expanduser('models'), self.subdir)
-        self.learning_rate = 0.0001
-        self.batch_size = 40
+        self.learning_rate = 0.1
+        self.batch_size = 60
         self.class_num = 2000
         self.max_epoch = 20
         self.data_dir = './data' if server else '/home/bingzhang/Documents/Dataset/CACD/data'
@@ -84,8 +84,9 @@ class FaceClassifier():
         loss = tf.reduce_mean(cross_entropy, name='cross_entropy_mean')
 
         tf.summary.scalar('loss', loss)
-
-        return loss
+        regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+        total_loss = tf.add_n([loss] + regularization_losses, name='total_loss')
+        return total_loss
 
     def _build_accuracy(self):
         with tf.name_scope('accuracy'):
@@ -147,6 +148,5 @@ if __name__ == '__main__':
     config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     config.gpu_options.allow_growth = True
     this_session = tf.Session(config=config)
-    sess = tf.Session()
     model = FaceClassifier(sess=this_session,server=parse_arguments(sys.argv[1:]).server)
     model.train()
