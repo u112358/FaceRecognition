@@ -27,6 +27,8 @@ from datetime import datetime
 import time
 from util import net_builder as nb
 from util import data_reader as dr
+from util import file_reader as fr
+import scipy.io as sio
 import tensorflow.contrib.slim as slim
 import argparse
 import sys
@@ -50,10 +52,10 @@ class FaceClassifier():
         self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
         self.model_dir = os.path.join(os.path.expanduser('models'), self.subdir)
         self.learning_rate = 0.1
-        self.batch_size = 60
+        self.batch_size = 400
         self.class_num = 2000
         self.max_epoch = 20
-        self.data_dir = './data' if server else '/home/bingzhang/Documents/Dataset/CACD/data'
+        self.data_dir = './data' if server else '/home/bingzhang/Documents/Dataset/CACD/CACD2000/'
         self.image_in = tf.placeholder(tf.float32, [self.batch_size, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [self.batch_size])
         self.net = self._build_net()
@@ -73,7 +75,7 @@ class FaceClassifier():
 
     def triplet_sample(self,sampled_id,sampled_image):
         em = self.sess.run(self.embeddings,feed_dict={self.image_in:sampled_id,self.label_in:sampled_id})
-        for
+
 
     def _build_net(self):
         # convolution layers
@@ -116,40 +118,21 @@ class FaceClassifier():
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
         saver = tf.train.Saver()
-        data_reader = dr.DataReader(self.data_dir, 163446, self.batch_size, 0.8, reproducible=True)
+        CACD = fr.FileReader(self.data_dir,'cele.mat')
         tf.summary.image('image', self.image_in, 10)
         summary_op = tf.summary.merge_all()
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
-        while data_reader.epoch < self.max_epoch:
-            if step % 100 == 0:
-                images, label = data_reader.next_batch(phase_train=False)
-                reshaped_image = np.reshape(images, [self.batch_size, 250, 250, 3])
-                feed_dict = {self.image_in: reshaped_image, self.label_in: label}
-                start_time = time.time()
-                err, acc, sum = self.sess.run([self.loss, self.accuracy, summary_op], feed_dict=feed_dict)
-                duration = time.time() - start_time
-                print('Epoch:%d/%d\tTime:%.3f\tLoss:%2.4f\tAcc:%2.4f\t@[TEST]' % (
-                    data_reader.current_test_batch_index, data_reader.epoch, duration, err, acc))
-                writer_test.add_summary(sum, step)
-            else:
-                images, label = data_reader.next_batch(phase_train=True)
-                reshaped_image = np.reshape(images, [self.batch_size, 250, 250, 3])
-                feed_dict = {self.image_in: reshaped_image, self.label_in: label}
-                start_time = time.time()
-                err, acc, sum, _ = self.sess.run([self.loss, self.accuracy, summary_op, self.opt], feed_dict=feed_dict)
-                duration = time.time() - start_time
-                print('Epoch:%d/%d\tTime:%.3f\tLoss:%2.4f\tAcc:%2.4f\t' % (
-                    data_reader.current_train_batch_index, data_reader.epoch, duration, err, acc))
-                writer_train.add_summary(sum, step)
-            if step % 3268 == 0:
-                if not os.path.exists(self.model_dir):
-                    os.makedirs(self.model_dir)
-                saver.save(self.sess, self.model_dir, step)
-
-            step += 1
-
+        print 'start forwarding'
+        time_start = time.time()
+        image,label = CACD.select_identity(20,20)
+        print time.time()-time_start
+        sio.savemat('image.mat',{'image':image})
+        feeddic = {self.image_in:image,self.label_in:label}
+        emb = self.sess.run(self.embeddings,feed_dict=feeddic)
+        sio.savemat('emb.mat',{'embeddings':emb})
+        print time.time()-time_start
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
