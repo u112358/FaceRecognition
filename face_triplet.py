@@ -31,6 +31,7 @@ import tensorflow.contrib.slim as slim
 import argparse
 import sys
 
+
 class FaceClassifier():
     """Summary of class here.
 
@@ -56,9 +57,23 @@ class FaceClassifier():
         self.image_in = tf.placeholder(tf.float32, [self.batch_size, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [self.batch_size])
         self.net = self._build_net()
+        self.embeddings = self._forward()
         self.loss = self._build_loss()
         self.accuracy = self._build_accuracy()
-        self.opt = tf.train.AdamOptimizer(self.learning_rate,beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.loss)
+        self.opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.loss)
+
+    def _forward(self):
+        net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
+                              weight_decay=0.0)
+        logits = slim.fully_connected(net, self.class_num, activation_fn=None,
+                                      weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
+                                      weights_regularizer=slim.l2_regularizer(0.0), scope='logits_for_embedding')
+        embeddings = tf.nn.l2_normalize(logits,dim=1,epsilon=1e-12,name='embeddings')
+        return embeddings
+
+    def triplet_sample(self,sampled_id,sampled_image):
+        em = self.sess.run(self.embeddings,feed_dict={self.image_in:sampled_id,self.label_in:sampled_id})
+        for
 
     def _build_net(self):
         # convolution layers
@@ -74,11 +89,11 @@ class FaceClassifier():
         #     nb.variable_summaries(biases,'biases')
         logits = slim.fully_connected(net, self.class_num, activation_fn=None,
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
-                                      weights_regularizer=slim.l2_regularizer(0.0), scope='logits', reuse=False)
+                                      weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
         return logits
 
     def _build_loss(self):
-        label_int64 = tf.cast(self.label_in,tf.int64)
+        label_int64 = tf.cast(self.label_in, tf.int64)
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=self.net, labels=label_int64, name='cross_entropy')
         loss = tf.reduce_mean(cross_entropy, name='cross_entropy_mean')
@@ -91,7 +106,7 @@ class FaceClassifier():
     def _build_accuracy(self):
         with tf.name_scope('accuracy'):
             with tf.name_scope('correct_prediction'):
-                correct_prediction = tf.equal(tf.argmax(self.net, 1),tf.cast(self.label_in,tf.int64))
+                correct_prediction = tf.equal(tf.argmax(self.net, 1), tf.cast(self.label_in, tf.int64))
             with tf.name_scope('accuracy'):
                 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
                 tf.summary.scalar('accuracy', accuracy)
@@ -144,9 +159,10 @@ def parse_arguments(argv):
 
     return parser.parse_args(argv)
 
+
 if __name__ == '__main__':
     config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     config.gpu_options.allow_growth = True
     this_session = tf.Session(config=config)
-    model = FaceClassifier(sess=this_session,server=parse_arguments(sys.argv[1:]).server)
+    model = FaceClassifier(sess=this_session, server=parse_arguments(sys.argv[1:]).server)
     model.train()
