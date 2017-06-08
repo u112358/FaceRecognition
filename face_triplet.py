@@ -63,19 +63,17 @@ class FaceClassifier():
         self.loss = self._build_loss()
         self.accuracy = self._build_accuracy()
         self.opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.loss)
+        self.nof_sampled_id = 20
+        self.nof_images_per_id = 20
 
     def _forward(self):
         net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
                               weight_decay=0.0)
         logits = slim.fully_connected(net, self.class_num, activation_fn=None,
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
-                                      weights_regularizer=slim.l2_regularizer(0.0), scope='logits_for_embedding')
-        embeddings = tf.nn.l2_normalize(logits,dim=1,epsilon=1e-12,name='embeddings')
+                                      weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
+        embeddings = tf.nn.l2_normalize(net, dim=1, epsilon=1e-12, name='embeddings')
         return embeddings
-
-    def triplet_sample(self,sampled_id,sampled_image):
-        em = self.sess.run(self.embeddings,feed_dict={self.image_in:sampled_id,self.label_in:sampled_id})
-
 
     def _build_net(self):
         # convolution layers
@@ -118,21 +116,34 @@ class FaceClassifier():
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
         saver = tf.train.Saver()
-        CACD = fr.FileReader(self.data_dir,'cele.mat')
+        saver.restore(self.sess,'/home/bingzhang/Workspace/PycharmProjects/model/20170529-141612-52288')
+        # saver = tf.train.Saver()
+        CACD = fr.FileReader(self.data_dir, 'cele.mat')
         tf.summary.image('image', self.image_in, 10)
         summary_op = tf.summary.merge_all()
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
-        print 'start forwarding'
+
+        print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
+        self.nof_sampled_id, self.nof_images_per_id)
         time_start = time.time()
-        image,label = CACD.select_identity(20,20)
-        print time.time()-time_start
-        sio.savemat('image.mat',{'image':image})
-        feeddic = {self.image_in:image,self.label_in:label}
-        emb = self.sess.run(self.embeddings,feed_dict=feeddic)
-        sio.savemat('emb.mat',{'embeddings':emb})
-        print time.time()-time_start
+        image, label = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
+        emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
+        print time.time() - time_start
+
+        print 'selecting triplets'
+        triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id)
+
+
+def triplet_sample(embeddings, nof_ids, nof_images_per_id,delta):
+    aff = []
+    for anchor_id in xrange(nof_ids*nof_images_per_id):
+        dist = np.sum(np.square(embeddings-embeddings[anchor_id]),1)
+        aff.append(dist)
+        for pos_id in xrange(anchor_id,anchor_id)
+
+
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()

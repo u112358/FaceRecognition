@@ -55,6 +55,6 @@ class FileReader():
         image_data = []
         label_data = []
         for image, label in images_and_labels:
-            image_data.append(ndimage.imread(self.prefix + str(self.path[image][0])))
+            image_data.append(ndimage.imread(self.prefix + self.path[image][0].encode('utf-8')))
             label_data.append(label)
         return image_data, label_data
