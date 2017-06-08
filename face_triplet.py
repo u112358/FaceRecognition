@@ -56,8 +56,8 @@ class FaceClassifier():
         self.class_num = 2000
         self.max_epoch = 20
         self.data_dir = './data' if server else '/home/bingzhang/Documents/Dataset/CACD/CACD2000/'
-        self.image_in = tf.placeholder(tf.float32, [self.batch_size, 250, 250, 3])
-        self.label_in = tf.placeholder(tf.float32, [self.batch_size])
+        self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
+        self.label_in = tf.placeholder(tf.float32, [None])
         self.net = self._build_net()
         self.embeddings = self._forward()
         self.loss = self._build_loss()
@@ -72,7 +72,7 @@ class FaceClassifier():
         logits = slim.fully_connected(net, self.class_num, activation_fn=None,
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
                                       weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
-        embeddings = tf.nn.l2_normalize(net, dim=1, epsilon=1e-12, name='embeddings')
+        embeddings = tf.nn.l2_normalize(logits, dim=1, epsilon=1e-12, name='embeddings')
         return embeddings
 
     def _build_net(self):
@@ -116,7 +116,7 @@ class FaceClassifier():
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
         saver = tf.train.Saver()
-        saver.restore(self.sess,'/home/bingzhang/Workspace/PycharmProjects/model/20170529-141612-52288')
+        saver.restore(self.sess, '/home/bingzhang/Workspace/PycharmProjects/model/20170529-141612-52288')
         # saver = tf.train.Saver()
         CACD = fr.FileReader(self.data_dir, 'cele.mat')
         tf.summary.image('image', self.image_in, 10)
@@ -126,23 +126,33 @@ class FaceClassifier():
         step = 1
 
         print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
-        self.nof_sampled_id, self.nof_images_per_id)
+            self.nof_sampled_id, self.nof_images_per_id)
         time_start = time.time()
         image, label = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
         emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
         print time.time() - time_start
 
         print 'selecting triplets'
-        triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id)
+        triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id, 0.05)
 
 
-def triplet_sample(embeddings, nof_ids, nof_images_per_id,delta):
+def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
     aff = []
-    for anchor_id in xrange(nof_ids*nof_images_per_id):
-        dist = np.sum(np.square(embeddings-embeddings[anchor_id]),1)
+    triplet = []
+    for anchor_id in xrange(nof_ids * nof_images_per_id):
+        dist = np.sum(np.square(embeddings - embeddings[anchor_id]), 1)
         aff.append(dist)
-        for pos_id in xrange(anchor_id,anchor_id)
-
+        for pos_id in xrange(anchor_id + 1, (anchor_id // nof_images_per_id + 1) * nof_images_per_id):
+            neg_dist = np.copy(dist)
+            neg_dist[anchor_id:(anchor_id // nof_images_per_id + 1) * nof_images_per_id] = np.NAN
+            neg_ids = np.where(neg_dist-dist[pos_id]<delta)[0]
+            nof_neg_ids = len(neg_ids)
+            if nof_neg_ids>0:
+                rand_id = np.random.randint(nof_neg_ids)
+                neg_id = neg_ids[rand_id]
+                triplet.append([anchor_id,pos_id,neg_id])
+    print triplet
+    return triplet
 
 
 def parse_arguments(argv):
