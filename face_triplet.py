@@ -48,27 +48,25 @@ class FaceTriplet():
 
     def __init__(self, sess, config):
         self.sess = sess
-        self.root_dir = os.getcwd()
         self.subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
         self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
-        self.model_dir = os.path.join(os.path.expanduser('models'), self.subdir)
-        self.learning_rate = 0.1
+        self.data_dir = config.data_dir
+        self.model = config.model
+        self.learning_rate = 0.01
         self.batch_size = 30
         self.embedding_size = 2000
         self.max_epoch = 20
-        self.data_dir = config.data_dir
-        self.model = config.model
+        self.delta = 0.2
+        self.nof_sampled_id = 20
+        self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
+        self.affinity = tf.placeholder(tf.float32,[self.nof_images_per_id*self.nof_sampled_id,self.nof_images_per_id*self.nof_sampled_id])
         self.net = self._build_net()
         self.embeddings = self._forward()
         self.loss = self._build_loss()
         self.accuracy = self._build_accuracy()
         self.opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.loss)
-        self.nof_sampled_id = 20
-        self.nof_images_per_id = 20
-        self.delta = 0.5
-
     def _forward(self):
         net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
                               weight_decay=0.0, reuse=True)
@@ -101,7 +99,9 @@ class FaceTriplet():
         pos = embeddings[1:self.batch_size:3][:]
         neg = embeddings[2:self.batch_size:3][:]
 
-        total_loss = triplet_loss(anchor=anchor, positive=pos, negative=neg, delta=0.5)
+        total_loss = triplet_loss(anchor=anchor, positive=pos, negative=neg, delta=self.delta)
+
+        tf.summary.scalar('loss', total_loss)
         return total_loss
 
     def _build_accuracy(self):
@@ -110,7 +110,7 @@ class FaceTriplet():
                 correct_prediction = tf.equal(tf.argmax(self.net, 1), tf.cast(self.label_in, tf.int64))
             with tf.name_scope('accuracy'):
                 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-                tf.summary.scalar('accuracy', accuracy)
+                # tf.summary.scalar('accuracy', accuracy)
         return accuracy
 
     def train(self):
@@ -133,6 +133,11 @@ class FaceTriplet():
             time_start = time.time()
             image, label = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
             emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
+            aff = []
+            for idx in range(len(label)):
+                aff.append(np.sum(np.square(emb[idx][:]-emb),1))
+            self.sess.run([],{self.affinity:aff})
+            tf.summary.image('affinity',self.affinity,30)
             print 'Time Elapsed %lf' % (time.time() - time_start)
 
             time_start = time.time()
@@ -148,12 +153,12 @@ class FaceTriplet():
                     triplet_image = np.reshape(triplet_image, [-1, 250, 250, 3])
                     triplet_label = np.reshape(triplet_label, [-1])
                     start_time = time.time()
-                    err,emb, _ = self.sess.run([self.loss, self.embeddings,self.opt],
+                    err, summary,_ = self.sess.run([self.loss,summary_op,self.opt],
                                            feed_dict={self.image_in: triplet_image, self.label_in: triplet_label})
-
                     print '[%d/%d@%dth select_triplet & global_step %d] loss:[%lf] time elapsed:%lf' % (
                         inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
                         time.time() - start_time)
+                    writer_train.add_summary(summary,step)
                     step += 1
                     inner_step += 1
             triplet_select_times += 1
