@@ -166,7 +166,7 @@ class FaceTriplet():
                                                                                                     self.nof_images_per_id * self.nof_sampled_id,
                                                                                                     1]),
                                                                self.possible_triplets: nof_triplet})
-                    print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[0;37;40m time elapsed:%lf' % (
+                    print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
                         inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
                         time.time() - start_time)
                     writer_train.add_summary(summary, step)
