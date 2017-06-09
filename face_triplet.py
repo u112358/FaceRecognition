@@ -32,7 +32,7 @@ import scipy.io as sio
 import tensorflow.contrib.slim as slim
 import argparse
 import sys
-
+import configurer
 
 class FaceTriplet():
     """Summary of class here.
@@ -45,7 +45,7 @@ class FaceTriplet():
         eggs: An integer count of the eggs we have laid.
     """
 
-    def __init__(self, sess=tf.Session(), server=False):
+    def __init__(self, sess, config):
         self.sess = sess
         self.root_dir = os.getcwd()
         self.subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
@@ -55,7 +55,8 @@ class FaceTriplet():
         self.batch_size = 30
         self.embedding_size = 2000
         self.max_epoch = 20
-        self.data_dir = './data' if server else '/home/bingzhang/Documents/Dataset/CACD/CACD2000/'
+        self.data_dir = config.data_dir
+        self.model = config.model
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
         self.net = self._build_net()
@@ -116,7 +117,7 @@ class FaceTriplet():
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
         saver = tf.train.Saver()
-        saver.restore(self.sess, '/home/bingzhang/Workspace/PycharmProjects/model/20170529-141612-52288')
+        saver.restore(self.sess, self.model)
         # saver = tf.train.Saver()
         CACD = fr.FileReader(self.data_dir, 'cele.mat')
         triplet_select_times = 1
@@ -190,13 +191,14 @@ def triplet_loss(anchor, positive, negative, delta):
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--server', type=bool,
-                        help='whether run on a server', default=False)
+    parser.add_argument('--workplace', type=str,
+                        help='where the code runs', default='server')
 
     return parser.parse_args(argv)
 
 
 if __name__ == '__main__':
     this_session = tf.Session()
-    model = FaceTriplet(sess=this_session, server=parse_arguments(sys.argv[1:]).server)
+    config = configurer.Configurer(parse_arguments(sys.argv[1:]).workplace)
+    model = FaceTriplet(this_session, config)
     model.train()
