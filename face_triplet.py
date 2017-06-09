@@ -64,7 +64,7 @@ class FaceTriplet():
         self.affinity = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
                                                     self.nof_images_per_id * self.nof_sampled_id, 1])
         self.possible_triplets = tf.placeholder(tf.int16, name='possible_triplets')
-        self.sampled_freq = tf.placeholder(tf.int32, [1, 50, 40, 1], name='sampled_freq')
+        self.sampled_freq = tf.placeholder(tf.float32, [1, 50, 40, 1], name='sampled_freq')
         self.net = self._build_net()
         self.embeddings = self._forward()
         self.loss = self._build_loss()
