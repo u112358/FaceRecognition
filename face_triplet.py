@@ -97,10 +97,9 @@ class FaceTriplet():
 
     def _build_loss(self):
         embeddings = self._forward()
-        embeddings = tf.reshape(embeddings, [3, 2000, -1])
-        anchor = embeddings[0][:][:]
-        pos = embeddings[1][:][:]
-        neg = embeddings[2][:][:]
+        anchor = embeddings[0:self.batch_size:3][:]
+        pos = embeddings[1:self.batch_size:3][:]
+        neg = embeddings[2:self.batch_size:3][:]
 
         total_loss = triplet_loss(anchor=anchor, positive=pos, negative=neg, delta=0.5)
         return total_loss
@@ -134,7 +133,6 @@ class FaceTriplet():
             time_start = time.time()
             image, label = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
             emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
-            sio.savemat('emb.mat', {'emb': emb})
             print 'Time Elapsed %lf' % (time.time() - time_start)
 
             time_start = time.time()
@@ -150,8 +148,9 @@ class FaceTriplet():
                     triplet_image = np.reshape(triplet_image, [-1, 250, 250, 3])
                     triplet_label = np.reshape(triplet_label, [-1])
                     start_time = time.time()
-                    err, _ = self.sess.run([self.loss, self.opt],
+                    err,emb, _ = self.sess.run([self.loss, self.embeddings,self.opt],
                                            feed_dict={self.image_in: triplet_image, self.label_in: triplet_label})
+
                     print '[%d/%d@%dth select_triplet & global_step %d] loss:[%lf] time elapsed:%lf' % (
                         inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
                         time.time() - start_time)
@@ -190,8 +189,8 @@ def triplet_loss(anchor, positive, negative, delta):
       the triplet loss according to the FaceNet paper as a float tensor.
     """
     with tf.variable_scope('triplet_loss'):
-        pos_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, positive)), 0)
-        neg_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, negative)), 0)
+        pos_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, positive)), 1)
+        neg_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, negative)), 1)
 
         basic_loss = tf.add(tf.subtract(pos_dist, neg_dist), delta)
         loss = tf.reduce_mean(tf.maximum(basic_loss, 0.0), 0)
