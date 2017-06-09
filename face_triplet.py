@@ -34,6 +34,7 @@ import argparse
 import sys
 import configurer
 
+
 class FaceTriplet():
     """Summary of class here.
 
@@ -70,10 +71,10 @@ class FaceTriplet():
 
     def _forward(self):
         net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
-                              weight_decay=0.0,reuse=True)
+                              weight_decay=0.0, reuse=True)
         logits = slim.fully_connected(net, self.embedding_size, activation_fn=None,
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
-                                      weights_regularizer=slim.l2_regularizer(0.0), scope='logits',reuse=True)
+                                      weights_regularizer=slim.l2_regularizer(0.0), scope='logits', reuse=True)
         embeddings = tf.nn.l2_normalize(logits, dim=1, epsilon=1e-12, name='embeddings')
         return embeddings
 
@@ -96,12 +97,12 @@ class FaceTriplet():
 
     def _build_loss(self):
         embeddings = self._forward()
-        embeddings = tf.reshape(embeddings,[3,2000,-1])
+        embeddings = tf.reshape(embeddings, [3, 2000, -1])
         anchor = embeddings[0][:][:]
         pos = embeddings[1][:][:]
         neg = embeddings[2][:][:]
 
-        total_loss = triplet_loss(anchor=anchor,positive=pos,negative=neg, delta=0.5)
+        total_loss = triplet_loss(anchor=anchor, positive=pos, negative=neg, delta=0.5)
         return total_loss
 
     def _build_accuracy(self):
@@ -127,7 +128,7 @@ class FaceTriplet():
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
 
-        while triplet_select_times<19999:
+        while triplet_select_times < 19999:
             print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
                 self.nof_sampled_id, self.nof_images_per_id)
             time_start = time.time()
@@ -136,20 +137,25 @@ class FaceTriplet():
             print 'Time Elapsed %lf' % (time.time() - time_start)
 
             time_start = time.time()
-            print '[%d]selecting triplets' %triplet_select_times
+            print '[%d]selecting triplets' % triplet_select_times
             triplet = triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
             nof_triplet = len(triplet)
             print 'num of selected triplets:%d' % nof_triplet
             print 'Time Elapsed:%lf' % (time.time() - time_start)
-            for i in xrange(0,nof_triplet,self.batch_size//3):
-                triplet_image, triplet_label = CACD.read_triplet(triplet,i,self.batch_size//3)
-                triplet_image = np.reshape(triplet_image,[-1,250,250,3])
-                triplet_label = np.reshape(triplet_label,[-1])
-                start_time = time.time()
-                err,_ = self.sess.run([self.loss,self.opt],feed_dict={self.image_in: triplet_image, self.label_in: triplet_label})
-                print '[%d/%d@%d] loss:[%lf] time elapsed:%lf' %(step,(nof_triplet*3)//self.batch_size,triplet_select_times,err,time.time()-start_time)
-                step+=1
+            for i in xrange(0, nof_triplet, self.batch_size // 3 ):
+                if i+self.batch_size//3<nof_triplet:
+                    triplet_image, triplet_label = CACD.read_triplet(triplet, i, self.batch_size // 3)
+                    triplet_image = np.reshape(triplet_image, [-1, 250, 250, 3])
+                    triplet_label = np.reshape(triplet_label, [-1])
+                    start_time = time.time()
+                    err, _ = self.sess.run([self.loss, self.opt],
+                                           feed_dict={self.image_in: triplet_image, self.label_in: triplet_label})
+                    print '[%d/%d@%d] loss:[%lf] time elapsed:%lf' % (
+                    step, (nof_triplet * 3) // self.batch_size, triplet_select_times, err, time.time() - start_time)
+                    step += 1
         triplet_select_times += 1
+
+
 def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
     aff = []
     triplet = []
@@ -159,12 +165,12 @@ def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
         for pos_id in xrange(anchor_id + 1, (anchor_id // nof_images_per_id + 1) * nof_images_per_id):
             neg_dist = np.copy(dist)
             neg_dist[anchor_id:(anchor_id // nof_images_per_id + 1) * nof_images_per_id] = np.NAN
-            neg_ids = np.where(neg_dist-dist[pos_id]<delta)[0]
+            neg_ids = np.where(neg_dist - dist[pos_id] < delta)[0]
             nof_neg_ids = len(neg_ids)
-            if nof_neg_ids>0:
+            if nof_neg_ids > 0:
                 rand_id = np.random.randint(nof_neg_ids)
                 neg_id = neg_ids[rand_id]
-                triplet.append([anchor_id,pos_id,neg_id])
+                triplet.append([anchor_id, pos_id, neg_id])
     return triplet
 
 
@@ -187,6 +193,7 @@ def triplet_loss(anchor, positive, negative, delta):
         loss = tf.reduce_mean(tf.maximum(basic_loss, 0.0), 0)
 
     return loss
+
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
