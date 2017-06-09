@@ -134,6 +134,7 @@ class FaceTriplet():
             time_start = time.time()
             image, label = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
             emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
+            sio.savemat('emb.mat', {'emb': emb})
             print 'Time Elapsed %lf' % (time.time() - time_start)
 
             time_start = time.time()
@@ -142,18 +143,21 @@ class FaceTriplet():
             nof_triplet = len(triplet)
             print 'num of selected triplets:%d' % nof_triplet
             print 'Time Elapsed:%lf' % (time.time() - time_start)
-            for i in xrange(0, nof_triplet, self.batch_size // 3 ):
-                if i+self.batch_size//3<nof_triplet:
+            inner_step = 0
+            for i in xrange(0, nof_triplet, self.batch_size // 3):
+                if i + self.batch_size // 3 < nof_triplet:
                     triplet_image, triplet_label = CACD.read_triplet(triplet, i, self.batch_size // 3)
                     triplet_image = np.reshape(triplet_image, [-1, 250, 250, 3])
                     triplet_label = np.reshape(triplet_label, [-1])
                     start_time = time.time()
                     err, _ = self.sess.run([self.loss, self.opt],
                                            feed_dict={self.image_in: triplet_image, self.label_in: triplet_label})
-                    print '[%d/%d@%d] loss:[%lf] time elapsed:%lf' % (
-                    step, (nof_triplet * 3) // self.batch_size, triplet_select_times, err, time.time() - start_time)
+                    print '[%d/%d@%dth select_triplet & global_step %d] loss:[%lf] time elapsed:%lf' % (
+                        inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
+                        time.time() - start_time)
                     step += 1
-        triplet_select_times += 1
+                    inner_step += 1
+            triplet_select_times += 1
 
 
 def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
