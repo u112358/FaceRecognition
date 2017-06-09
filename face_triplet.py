@@ -56,7 +56,7 @@ class FaceTriplet():
         self.batch_size = 30
         self.embedding_size = 2000
         self.max_epoch = 20
-        self.delta = 0.2
+        self.delta = 0.4
         self.nof_sampled_id = 20
         self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
@@ -64,6 +64,7 @@ class FaceTriplet():
         self.affinity = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
                                                     self.nof_images_per_id * self.nof_sampled_id, 1])
         self.possible_triplets = tf.placeholder(tf.int16, name='possible_triplets')
+        self.sampled_freq = tf.placeholder(tf.int32, [1, 50, 40, 1], name='sampled_freq')
         self.net = self._build_net()
         self.embeddings = self._forward()
         self.loss = self._build_loss()
@@ -127,14 +128,17 @@ class FaceTriplet():
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
+        sampled_freq = np.zeros([2000, 1])
         tf.summary.image('image', self.image_in, 12)
         tf.summary.image('affinity', self.affinity, 30)
         tf.summary.scalar('possible triplets', self.possible_triplets)
+        tf.summary.image('sampled_freq', self.sampled_freq)
         while triplet_select_times < 19999:
             print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
                 self.nof_sampled_id, self.nof_images_per_id)
             time_start = time.time()
-            image, label = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
+            image, label, sampled_id = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
+            sampled_freq[sampled_id] += 1
             emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
             aff = []
             for idx in range(len(label)):
@@ -146,8 +150,6 @@ class FaceTriplet():
             print '[%d]selecting triplets' % triplet_select_times
             triplet = triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
             nof_triplet = len(triplet)
-
-
 
             summary_op = tf.summary.merge_all()
             print 'num of selected triplets:%d' % nof_triplet
@@ -163,10 +165,12 @@ class FaceTriplet():
                                                     feed_dict={self.image_in: triplet_image,
                                                                self.label_in: triplet_label,
                                                                self.affinity: np.reshape(np.array(aff), [-1,
-                                                                                                    self.nof_images_per_id * self.nof_sampled_id,
-                                                                                                    self.nof_images_per_id * self.nof_sampled_id,
-                                                                                                    1]),
-                                                               self.possible_triplets: nof_triplet})
+                                                                                                         self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                         self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                         1]),
+                                                               self.possible_triplets: nof_triplet,
+                                                               self.sampled_freq: np.reshape(sampled_freq,
+                                                                                             [1, 50, 40, 1])})
                     print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
                         inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
                         time.time() - start_time)

@@ -57,7 +57,7 @@ class FileReader():
         for image, label in images_and_labels:
             image_data.append(ndimage.imread(self.prefix + self.path[image][0].encode('utf-8')))
             label_data.append(label)
-        return image_data, label_data
+        return image_data, label_data,ids_selected
 
     def read_triplet(self,triplet,i,len):
         triplet_image = []
