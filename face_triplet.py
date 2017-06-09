@@ -52,12 +52,12 @@ class FaceTriplet():
         self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
         self.data_dir = config.data_dir
         self.model = config.model
-        self.learning_rate = 0.01
+        self.learning_rate = 0.1
         self.batch_size = 30
         self.embedding_size = 2000
         self.max_epoch = 20
-        self.delta = 0.4
-        self.nof_sampled_id = 30
+        self.delta = 0.2
+        self.nof_sampled_id = 40
         self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
@@ -231,7 +231,7 @@ def parse_arguments(argv):
 if __name__ == '__main__':
     config = configurer.Configurer(parse_arguments(sys.argv[1:]).workplace)
     if not parse_arguments(sys.argv[1:]).workplace =='sweet_home':
-        os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
+        os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
         gpu_config = tf.ConfigProto(allow_soft_placement=True)
         this_session = tf.Session(config=gpu_config)
         model = FaceTriplet(this_session, config)
