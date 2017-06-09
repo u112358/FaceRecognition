@@ -127,7 +127,6 @@ class FaceTriplet():
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
-        affinity = np.zeros([self.nof_images_per_id * self.nof_sampled_id,self.nof_images_per_id * self.nof_sampled_id])
         while triplet_select_times < 19999:
             print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
                 self.nof_sampled_id, self.nof_images_per_id)
@@ -137,7 +136,6 @@ class FaceTriplet():
             aff = []
             for idx in range(len(label)):
                 aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
-            affinity = [affinity, np.asarray(aff)]
 
             print 'Time Elapsed %lf' % (time.time() - time_start)
 
@@ -163,7 +161,7 @@ class FaceTriplet():
                     err, summary, _ = self.sess.run([self.loss, summary_op, self.opt],
                                                     feed_dict={self.image_in: triplet_image,
                                                                self.label_in: triplet_label,
-                                                               self.affinity: np.reshape(affinity, [-1,
+                                                               self.affinity: np.reshape(np.array(aff), [-1,
                                                                                                     self.nof_images_per_id * self.nof_sampled_id,
                                                                                                     self.nof_images_per_id * self.nof_sampled_id,
                                                                                                     1]),
