@@ -33,7 +33,6 @@ import tensorflow.contrib.slim as slim
 import argparse
 import sys
 import configurer
-from termcolor import colored
 
 
 class FaceTriplet():
@@ -128,7 +127,7 @@ class FaceTriplet():
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
-        affinity = []
+        affinity = np.zeros([0,0])
         while triplet_select_times < 19999:
             print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
                 self.nof_sampled_id, self.nof_images_per_id)
