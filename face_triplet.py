@@ -55,7 +55,7 @@ class FaceTriplet():
         self.batch_size = 30
         self.embedding_size = 2000
         self.max_epoch = 20
-        self.data_dir = './data' if server else '/Users/bingzhanghu/Documents/Dataset/CACD/'
+        self.data_dir = './data' if server else '/home/bingzhang/Documents/Dataset/CACD/CACD2000/'
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
         self.net = self._build_net()
@@ -95,10 +95,10 @@ class FaceTriplet():
 
     def _build_loss(self):
         embeddings = self._forward()
-        embeddings = tf.reshape(embeddings,[-1,3,2000])
-        anchor = embeddings[:][0][:]
-        pos = embeddings[:][1][:]
-        neg = embeddings[:][2][:]
+        embeddings = tf.reshape(embeddings,[3,2000,-1])
+        anchor = embeddings[0][:][:]
+        pos = embeddings[1][:][:]
+        neg = embeddings[2][:][:]
 
         total_loss = triplet_loss(anchor=anchor,positive=pos,negative=neg, delta=0.5)
         return total_loss
@@ -116,7 +116,7 @@ class FaceTriplet():
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
         saver = tf.train.Saver()
-        saver.restore(self.sess, '/Users/bingzhanghu/Documents/model/20170529-141612-52288')
+        saver.restore(self.sess, '/home/bingzhang/Workspace/PycharmProjects/model/20170529-141612-52288')
         # saver = tf.train.Saver()
         CACD = fr.FileReader(self.data_dir, 'cele.mat')
         triplet_select_times = 1
@@ -139,13 +139,14 @@ class FaceTriplet():
         nof_triplet = len(triplet)
         triplet_select_times+=1
         print 'num of selected triplets:%d' % nof_triplet
-        print 'Timet Elapsed:%lf' % (time.time() - time_start)
+        print 'Time Elapsed:%lf' % (time.time() - time_start)
         for i in xrange(0,nof_triplet,self.batch_size//3):
             triplet_image, triplet_label = CACD.read_triplet(triplet,i,self.batch_size//3)
             triplet_image = np.reshape(triplet_image,[-1,250,250,3])
             triplet_label = np.reshape(triplet_label,[-1])
+            start_time = time.time()
             err,_ = self.sess.run([self.loss,self.opt],feed_dict={self.image_in: triplet_image, self.label_in: triplet_label})
-            print '[%d] loss:[%lf]' %(step,err)
+            print '[%d] loss:[%lf] time elapsed:%lf' %(step,err,time.time()-start_time)
             step+=1
 
 def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
@@ -178,8 +179,8 @@ def triplet_loss(anchor, positive, negative, delta):
       the triplet loss according to the FaceNet paper as a float tensor.
     """
     with tf.variable_scope('triplet_loss'):
-        pos_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, positive)), 1)
-        neg_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, negative)), 1)
+        pos_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, positive)), 0)
+        neg_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, negative)), 0)
 
         basic_loss = tf.add(tf.subtract(pos_dist, neg_dist), delta)
         loss = tf.reduce_mean(tf.maximum(basic_loss, 0.0), 0)

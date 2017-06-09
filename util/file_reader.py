@@ -61,10 +61,11 @@ class FileReader():
 
     def read_triplet(self,triplet,i,len):
         triplet_image = []
+        triplet_label = []
         for idx in xrange(i,i+len):
             anchor=ndimage.imread(self.prefix+self.path[triplet[idx][0]][0].encode('utf-8'))
             pos = ndimage.imread(self.prefix+self.path[triplet[idx][1]][0].encode('utf-8'))
             neg = ndimage.imread(self.prefix+self.path[triplet[idx][2]][0].encode('utf-8'))
             triplet_image.append([anchor,pos,neg])
-        triplet_label = np.zeros([len,3])
+            triplet_label.append([triplet[idx][0],triplet[idx][1],triplet[idx][2]])
         return triplet_image,triplet_label
