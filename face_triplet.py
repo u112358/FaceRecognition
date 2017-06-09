@@ -57,8 +57,8 @@ class FaceTriplet():
         self.embedding_size = 2000
         self.max_epoch = 20
         self.delta = 0.4
-        self.nof_sampled_id = 20
-        self.nof_images_per_id = 20
+        self.nof_sampled_id = 50
+        self.nof_images_per_id = 50
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
         self.affinity = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
@@ -137,7 +137,7 @@ class FaceTriplet():
             print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
                 self.nof_sampled_id, self.nof_images_per_id)
             time_start = time.time()
-            image, label, sampled_id = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
+            image, label, image_path,sampled_id = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
             sampled_freq[sampled_id] += 1
             emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
             aff = []
@@ -157,7 +157,7 @@ class FaceTriplet():
             inner_step = 0
             for i in xrange(0, nof_triplet, self.batch_size // 3):
                 if i + self.batch_size // 3 < nof_triplet:
-                    triplet_image, triplet_label = CACD.read_triplet(triplet, i, self.batch_size // 3)
+                    triplet_image, triplet_label = CACD.read_triplet(image_path,label,triplet, i, self.batch_size // 3)
                     triplet_image = np.reshape(triplet_image, [-1, 250, 250, 3])
                     triplet_label = np.reshape(triplet_label, [-1])
                     start_time = time.time()

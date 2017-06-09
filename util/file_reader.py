@@ -54,18 +54,20 @@ class FileReader():
 
         image_data = []
         label_data = []
+        image_path = []
         for image, label in images_and_labels:
             image_data.append(ndimage.imread(self.prefix + self.path[image][0].encode('utf-8')))
             label_data.append(label)
-        return image_data, label_data,ids_selected
+            image_path.append(self.prefix + self.path[image][0].encode('utf-8'))
+        return image_data, label_data,image_path,ids_selected
 
-    def read_triplet(self,triplet,i,len):
+    def read_triplet(self,image_path,label,triplet,i,len):
         triplet_image = []
         triplet_label = []
         for idx in xrange(i,i+len):
-            anchor=ndimage.imread(self.prefix+self.path[triplet[idx][0]][0].encode('utf-8'))
-            pos = ndimage.imread(self.prefix+self.path[triplet[idx][1]][0].encode('utf-8'))
-            neg = ndimage.imread(self.prefix+self.path[triplet[idx][2]][0].encode('utf-8'))
+            anchor=ndimage.imread(image_path[triplet[idx][0]])
+            pos = ndimage.imread(image_path[triplet[idx][1]])
+            neg = ndimage.imread(image_path[triplet[idx][2]])
             triplet_image.append([anchor,pos,neg])
-            triplet_label.append([triplet[idx][0],triplet[idx][1],triplet[idx][2]])
+            triplet_label.append([label[triplet[idx][0]],label[triplet[idx][1]],label[triplet[idx][2]]])
         return triplet_image,triplet_label
