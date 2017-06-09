@@ -33,6 +33,7 @@ import tensorflow.contrib.slim as slim
 import argparse
 import sys
 import configurer
+from termcolor import colored
 
 
 class FaceTriplet():
@@ -61,12 +62,15 @@ class FaceTriplet():
         self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
-        self.affinity = tf.placeholder(tf.float32,[self.nof_images_per_id*self.nof_sampled_id,self.nof_images_per_id*self.nof_sampled_id])
+        self.affinity = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
+                                                    self.nof_images_per_id * self.nof_sampled_id, 1])
+        self.possible_triplets = tf.placeholder(tf.int16, name='possible_triplets')
         self.net = self._build_net()
         self.embeddings = self._forward()
         self.loss = self._build_loss()
         self.accuracy = self._build_accuracy()
         self.opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.loss)
+
     def _forward(self):
         net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
                               weight_decay=0.0, reuse=True)
@@ -121,12 +125,10 @@ class FaceTriplet():
         # saver = tf.train.Saver()
         CACD = fr.FileReader(self.data_dir, 'cele.mat')
         triplet_select_times = 1
-        tf.summary.image('image', self.image_in, 10)
-        summary_op = tf.summary.merge_all()
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
-
+        affinity = []
         while triplet_select_times < 19999:
             print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
                 self.nof_sampled_id, self.nof_images_per_id)
@@ -135,15 +137,21 @@ class FaceTriplet():
             emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
             aff = []
             for idx in range(len(label)):
-                aff.append(np.sum(np.square(emb[idx][:]-emb),1))
-            self.sess.run([],{self.affinity:aff})
-            tf.summary.image('affinity',self.affinity,30)
+                aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
+            affinity = [affinity, np.asarray(aff)]
+
             print 'Time Elapsed %lf' % (time.time() - time_start)
 
             time_start = time.time()
             print '[%d]selecting triplets' % triplet_select_times
             triplet = triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
             nof_triplet = len(triplet)
+
+            tf.summary.image('image', self.image_in, 12)
+            tf.summary.image('affinity', self.affinity, 30)
+            tf.summary.scalar('possible triplets', self.possible_triplets)
+
+            summary_op = tf.summary.merge_all()
             print 'num of selected triplets:%d' % nof_triplet
             print 'Time Elapsed:%lf' % (time.time() - time_start)
             inner_step = 0
@@ -153,12 +161,18 @@ class FaceTriplet():
                     triplet_image = np.reshape(triplet_image, [-1, 250, 250, 3])
                     triplet_label = np.reshape(triplet_label, [-1])
                     start_time = time.time()
-                    err, summary,_ = self.sess.run([self.loss,summary_op,self.opt],
-                                           feed_dict={self.image_in: triplet_image, self.label_in: triplet_label})
-                    print '[%d/%d@%dth select_triplet & global_step %d] loss:[%lf] time elapsed:%lf' % (
+                    err, summary, _ = self.sess.run([self.loss, summary_op, self.opt],
+                                                    feed_dict={self.image_in: triplet_image,
+                                                               self.label_in: triplet_label,
+                                                               self.affinity: np.reshape(affinity, [-1,
+                                                                                                    self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                    self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                    1]),
+                                                               self.possible_triplets: nof_triplet})
+                    print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[0;37;40m time elapsed:%lf' % (
                         inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
                         time.time() - start_time)
-                    writer_train.add_summary(summary,step)
+                    writer_train.add_summary(summary, step)
                     step += 1
                     inner_step += 1
             triplet_select_times += 1
