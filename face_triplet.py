@@ -139,7 +139,6 @@ class FaceTriplet():
             print '[%d]selecting triplets' %triplet_select_times
             triplet = triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
             nof_triplet = len(triplet)
-            triplet_select_times+=1
             print 'num of selected triplets:%d' % nof_triplet
             print 'Time Elapsed:%lf' % (time.time() - time_start)
             for i in xrange(0,nof_triplet,self.batch_size//3):
@@ -148,8 +147,9 @@ class FaceTriplet():
                 triplet_label = np.reshape(triplet_label,[-1])
                 start_time = time.time()
                 err,_ = self.sess.run([self.loss,self.opt],feed_dict={self.image_in: triplet_image, self.label_in: triplet_label})
-                print '[%d/%d] loss:[%lf] time elapsed:%lf' %(step,triplet_select_times,err,time.time()-start_time)
+                print '[%d/%d@%d] loss:[%lf] time elapsed:%lf' %(step,(nof_triplet*3)//self.batch_size,triplet_select_times,err,time.time()-start_time)
                 step+=1
+        triplet_select_times += 1
 def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
     aff = []
     triplet = []
