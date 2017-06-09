@@ -127,29 +127,29 @@ class FaceTriplet():
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
 
-        print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
-            self.nof_sampled_id, self.nof_images_per_id)
-        time_start = time.time()
-        image, label = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
-        emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
-        print 'Time Elapsed %lf' % (time.time() - time_start)
+        while triplet_select_times<19999:
+            print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
+                self.nof_sampled_id, self.nof_images_per_id)
+            time_start = time.time()
+            image, label = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
+            emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
+            print 'Time Elapsed %lf' % (time.time() - time_start)
 
-        time_start = time.time()
-        print '[%d]selecting triplets' %triplet_select_times
-        triplet = triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
-        nof_triplet = len(triplet)
-        triplet_select_times+=1
-        print 'num of selected triplets:%d' % nof_triplet
-        print 'Time Elapsed:%lf' % (time.time() - time_start)
-        for i in xrange(0,nof_triplet,self.batch_size//3):
-            triplet_image, triplet_label = CACD.read_triplet(triplet,i,self.batch_size//3)
-            triplet_image = np.reshape(triplet_image,[-1,250,250,3])
-            triplet_label = np.reshape(triplet_label,[-1])
-            start_time = time.time()
-            err,_ = self.sess.run([self.loss,self.opt],feed_dict={self.image_in: triplet_image, self.label_in: triplet_label})
-            print '[%d] loss:[%lf] time elapsed:%lf' %(step,err,time.time()-start_time)
-            step+=1
-
+            time_start = time.time()
+            print '[%d]selecting triplets' %triplet_select_times
+            triplet = triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
+            nof_triplet = len(triplet)
+            triplet_select_times+=1
+            print 'num of selected triplets:%d' % nof_triplet
+            print 'Time Elapsed:%lf' % (time.time() - time_start)
+            for i in xrange(0,nof_triplet,self.batch_size//3):
+                triplet_image, triplet_label = CACD.read_triplet(triplet,i,self.batch_size//3)
+                triplet_image = np.reshape(triplet_image,[-1,250,250,3])
+                triplet_label = np.reshape(triplet_label,[-1])
+                start_time = time.time()
+                err,_ = self.sess.run([self.loss,self.opt],feed_dict={self.image_in: triplet_image, self.label_in: triplet_label})
+                print '[%d/%d] loss:[%lf] time elapsed:%lf' %(step,triplet_select_times,err,time.time()-start_time)
+                step+=1
 def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
     aff = []
     triplet = []
