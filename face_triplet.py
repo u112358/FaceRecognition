@@ -34,7 +34,7 @@ import argparse
 import sys
 
 
-class FaceClassifier():
+class FaceTriplet():
     """Summary of class here.
 
     Longer class information....
@@ -52,10 +52,10 @@ class FaceClassifier():
         self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
         self.model_dir = os.path.join(os.path.expanduser('models'), self.subdir)
         self.learning_rate = 0.1
-        self.batch_size = 400
-        self.class_num = 2000
+        self.batch_size = 30
+        self.embedding_size = 2000
         self.max_epoch = 20
-        self.data_dir = './data' if server else '/home/bingzhang/Documents/Dataset/CACD/CACD2000/'
+        self.data_dir = './data' if server else '/Users/bingzhanghu/Documents/Dataset/CACD/'
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
         self.net = self._build_net()
@@ -65,13 +65,14 @@ class FaceClassifier():
         self.opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.loss)
         self.nof_sampled_id = 20
         self.nof_images_per_id = 20
+        self.delta = 0.5
 
     def _forward(self):
         net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
-                              weight_decay=0.0)
-        logits = slim.fully_connected(net, self.class_num, activation_fn=None,
+                              weight_decay=0.0,reuse=True)
+        logits = slim.fully_connected(net, self.embedding_size, activation_fn=None,
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
-                                      weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
+                                      weights_regularizer=slim.l2_regularizer(0.0), scope='logits',reuse=True)
         embeddings = tf.nn.l2_normalize(logits, dim=1, epsilon=1e-12, name='embeddings')
         return embeddings
 
@@ -87,20 +88,19 @@ class FaceClassifier():
         #     output = tf.add(tf.matmul(net, weights), biases, name=scope.name)
         #     nb.variable_summaries(weights,'weights')
         #     nb.variable_summaries(biases,'biases')
-        logits = slim.fully_connected(net, self.class_num, activation_fn=None,
+        logits = slim.fully_connected(net, self.embedding_size, activation_fn=None,
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
                                       weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
         return logits
 
     def _build_loss(self):
-        label_int64 = tf.cast(self.label_in, tf.int64)
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            logits=self.net, labels=label_int64, name='cross_entropy')
-        loss = tf.reduce_mean(cross_entropy, name='cross_entropy_mean')
+        embeddings = self._forward()
+        embeddings = tf.reshape(embeddings,[-1,3,2000])
+        anchor = embeddings[:][0][:]
+        pos = embeddings[:][1][:]
+        neg = embeddings[:][2][:]
 
-        tf.summary.scalar('loss', loss)
-        regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-        total_loss = tf.add_n([loss] + regularization_losses, name='total_loss')
+        total_loss = triplet_loss(anchor=anchor,positive=pos,negative=neg, delta=0.5)
         return total_loss
 
     def _build_accuracy(self):
@@ -116,9 +116,10 @@ class FaceClassifier():
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
         saver = tf.train.Saver()
-        saver.restore(self.sess, '/home/bingzhang/Workspace/PycharmProjects/model/20170529-141612-52288')
+        saver.restore(self.sess, '/Users/bingzhanghu/Documents/model/20170529-141612-52288')
         # saver = tf.train.Saver()
         CACD = fr.FileReader(self.data_dir, 'cele.mat')
+        triplet_select_times = 1
         tf.summary.image('image', self.image_in, 10)
         summary_op = tf.summary.merge_all()
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
@@ -130,11 +131,22 @@ class FaceClassifier():
         time_start = time.time()
         image, label = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
         emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
-        print time.time() - time_start
+        print 'Time Elapsed %lf' % (time.time() - time_start)
 
-        print 'selecting triplets'
-        triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id, 0.05)
-
+        time_start = time.time()
+        print '[%d]selecting triplets' %triplet_select_times
+        triplet = triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
+        nof_triplet = len(triplet)
+        triplet_select_times+=1
+        print 'num of selected triplets:%d' % nof_triplet
+        print 'Timet Elapsed:%lf' % (time.time() - time_start)
+        for i in xrange(0,nof_triplet,self.batch_size//3):
+            triplet_image, triplet_label = CACD.read_triplet(triplet,i,self.batch_size//3)
+            triplet_image = np.reshape(triplet_image,[-1,250,250,3])
+            triplet_label = np.reshape(triplet_label,[-1])
+            err,_ = self.sess.run([self.loss,self.opt],feed_dict={self.image_in: triplet_image, self.label_in: triplet_label})
+            print '[%d] loss:[%lf]' %(step,err)
+            step+=1
 
 def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
     aff = []
@@ -151,9 +163,28 @@ def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
                 rand_id = np.random.randint(nof_neg_ids)
                 neg_id = neg_ids[rand_id]
                 triplet.append([anchor_id,pos_id,neg_id])
-    print triplet
     return triplet
 
+
+def triplet_loss(anchor, positive, negative, delta):
+    """Calculate the triplet loss according to the FaceNet paper
+
+    Args:
+      anchor: the embeddings for the anchor images.
+      positive: the embeddings for the positive images.
+      negative: the embeddings for the negative images.
+
+    Returns:
+      the triplet loss according to the FaceNet paper as a float tensor.
+    """
+    with tf.variable_scope('triplet_loss'):
+        pos_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, positive)), 1)
+        neg_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, negative)), 1)
+
+        basic_loss = tf.add(tf.subtract(pos_dist, neg_dist), delta)
+        loss = tf.reduce_mean(tf.maximum(basic_loss, 0.0), 0)
+
+    return loss
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
@@ -165,8 +196,6 @@ def parse_arguments(argv):
 
 
 if __name__ == '__main__':
-    config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-    config.gpu_options.allow_growth = True
-    this_session = tf.Session(config=config)
-    model = FaceClassifier(sess=this_session, server=parse_arguments(sys.argv[1:]).server)
+    this_session = tf.Session()
+    model = FaceTriplet(sess=this_session, server=parse_arguments(sys.argv[1:]).server)
     model.train()

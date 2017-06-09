@@ -47,7 +47,7 @@ class FileReader():
         images_and_labels = []
         ids_selected = random.sample(xrange(self.nof_identity), nof_person)
         for i in ids_selected:
-            images_indices = np.squeeze(np.where(self.identity == i))
+            images_indices = np.where(self.identity == i)[0]
             images_selected = random.sample(images_indices, nof_images)
             for image in images_selected:
                 images_and_labels.append([image, i])
@@ -58,3 +58,13 @@ class FileReader():
             image_data.append(ndimage.imread(self.prefix + self.path[image][0].encode('utf-8')))
             label_data.append(label)
         return image_data, label_data
+
+    def read_triplet(self,triplet,i,len):
+        triplet_image = []
+        for idx in xrange(i,i+len):
+            anchor=ndimage.imread(self.prefix+self.path[triplet[idx][0]][0].encode('utf-8'))
+            pos = ndimage.imread(self.prefix+self.path[triplet[idx][1]][0].encode('utf-8'))
+            neg = ndimage.imread(self.prefix+self.path[triplet[idx][2]][0].encode('utf-8'))
+            triplet_image.append([anchor,pos,neg])
+        triplet_label = np.zeros([len,3])
+        return triplet_image,triplet_label
