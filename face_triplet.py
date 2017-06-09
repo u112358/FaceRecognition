@@ -127,6 +127,9 @@ class FaceTriplet():
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
+        tf.summary.image('image', self.image_in, 12)
+        tf.summary.image('affinity', self.affinity, 30)
+        tf.summary.scalar('possible triplets', self.possible_triplets)
         while triplet_select_times < 19999:
             print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
                 self.nof_sampled_id, self.nof_images_per_id)
@@ -144,9 +147,7 @@ class FaceTriplet():
             triplet = triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
             nof_triplet = len(triplet)
 
-            tf.summary.image('image', self.image_in, 12)
-            tf.summary.image('affinity', self.affinity, 30)
-            tf.summary.scalar('possible triplets', self.possible_triplets)
+
 
             summary_op = tf.summary.merge_all()
             print 'num of selected triplets:%d' % nof_triplet
