@@ -52,7 +52,7 @@ class FaceTriplet():
         self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
         self.data_dir = config.data_dir
         self.model = config.model
-        self.learning_rate = 0.05
+        self.learning_rate = 0.01
         self.batch_size = 30
         self.embedding_size = 2000
         self.max_epoch = 20
@@ -231,7 +231,7 @@ def parse_arguments(argv):
 if __name__ == '__main__':
     config = configurer.Configurer(parse_arguments(sys.argv[1:]).workplace)
     if not parse_arguments(sys.argv[1:]).workplace =='sweet_home':
-        os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+        os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"
         gpu_config = tf.ConfigProto()
         this_session = tf.Session(config=gpu_config)
         model = FaceTriplet(this_session, config)
