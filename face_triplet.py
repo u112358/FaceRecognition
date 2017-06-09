@@ -231,8 +231,8 @@ def parse_arguments(argv):
 if __name__ == '__main__':
     config = configurer.Configurer(parse_arguments(sys.argv[1:]).workplace)
     if not parse_arguments(sys.argv[1:]).workplace =='sweet_home':
+        os.environ['CUDA_VISIBLE_DEVICES']='0,1'
         gpu_config = tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)
-        gpu_config.gpu_options.allow_growth = True
         this_session = tf.Session(config=gpu_config)
         model = FaceTriplet(this_session, config)
     else:
