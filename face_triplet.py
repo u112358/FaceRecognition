@@ -52,7 +52,7 @@ class FaceTriplet():
         self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
         self.data_dir = config.data_dir
         self.model = config.model
-        self.learning_rate = 0.01
+        self.learning_rate = 0.1
         self.batch_size = 30
         self.embedding_size = 2000
         self.max_epoch = 20
