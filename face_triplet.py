@@ -58,7 +58,7 @@ class FaceTriplet():
         self.max_epoch = 20
         self.delta = 0.4
         self.nof_sampled_id = 50
-        self.nof_images_per_id = 50
+        self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
         self.affinity = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
@@ -129,8 +129,8 @@ class FaceTriplet():
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 1
         sampled_freq = np.zeros([2000, 1])
-        tf.summary.image('image', self.image_in, 12)
-        tf.summary.image('affinity', self.affinity, 30)
+        tf.summary.image('image', self.image_in, 24)
+        tf.summary.image('affinity', self.affinity, 1)
         tf.summary.scalar('possible triplets', self.possible_triplets)
         tf.summary.image('sampled_freq', self.sampled_freq)
         while triplet_select_times < 19999:
