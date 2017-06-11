@@ -57,7 +57,7 @@ class FaceTriplet():
         self.embedding_size = 2000
         self.max_epoch = 20
         self.delta = 0.2
-        self.nof_sampled_id = 40
+        self.nof_sampled_id = 20
         self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
@@ -195,8 +195,7 @@ def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
                 rand_id = np.random.randint(nof_neg_ids)
                 neg_id = neg_ids[rand_id]
                 triplet.append([anchor_id, pos_id, neg_id])
-    return triplet
-
+    return np.random.shuffle(triplet)
 
 def triplet_loss(anchor, positive, negative, delta):
     """Calculate the triplet loss according to the FaceNet paper
@@ -231,11 +230,9 @@ def parse_arguments(argv):
 if __name__ == '__main__':
     config = configurer.Configurer(parse_arguments(sys.argv[1:]).workplace)
     if not parse_arguments(sys.argv[1:]).workplace =='sweet_home':
-        os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
         gpu_config = tf.ConfigProto(allow_soft_placement=True)
         this_session = tf.Session(config=gpu_config)
         model = FaceTriplet(this_session, config)
-        print os.environ.get("CUDA_VISIBLE_DEVICES")
     else:
         this_session = tf.Session()
         model = FaceTriplet(this_session,config)
