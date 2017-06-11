@@ -57,11 +57,13 @@ class FaceTriplet():
         self.embedding_size = 2000
         self.max_epoch = 20
         self.delta = 0.2
-        self.nof_sampled_id = 20
-        self.nof_images_per_id = 20
+        self.nof_sampled_id = 5
+        self.nof_images_per_id = 5
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
         self.affinity = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
+                                                    self.nof_images_per_id * self.nof_sampled_id, 1])
+        self.result = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
                                                     self.nof_images_per_id * self.nof_sampled_id, 1])
         self.possible_triplets = tf.placeholder(tf.int16, name='possible_triplets')
         self.sampled_freq = tf.placeholder(tf.float32, [1, 50, 40, 1], name='sampled_freq')
@@ -130,7 +132,9 @@ class FaceTriplet():
         step = 1
         sampled_freq = np.zeros([2000, 1])
         tf.summary.image('image', self.image_in, 24)
-        tf.summary.image('affinity', self.affinity, 1)
+        with tf.name_scope('ToCheck'):
+            tf.summary.image('affinity', self.affinity, 1)
+            tf.summary.image('result',self.result)
         tf.summary.scalar('possible triplets', self.possible_triplets)
         tf.summary.image('sampled_freq', self.sampled_freq)
         while triplet_select_times < 19999:
@@ -143,6 +147,7 @@ class FaceTriplet():
             aff = []
             for idx in range(len(label)):
                 aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
+            result =get_rank_k(aff,self.nof_images_per_id)
 
             print 'Time Elapsed %lf' % (time.time() - time_start)
 
@@ -169,6 +174,10 @@ class FaceTriplet():
                                                                                                          self.nof_images_per_id * self.nof_sampled_id,
                                                                                                          1]),
                                                                self.possible_triplets: nof_triplet,
+                                                               self.result:np.reshape(result, [-1,
+                                                                                                         self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                         self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                         1]),
                                                                self.sampled_freq: np.reshape(sampled_freq,
                                                                                              [1, 50, 40, 1])})
                     print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
@@ -226,6 +235,11 @@ def parse_arguments(argv):
 
     return parser.parse_args(argv)
 
+def get_rank_k(aff,k):
+    temp = np.argsort(aff)
+    ranks = np.arange(len(aff))[np.argsort(temp)]
+    ranks[np.where(ranks>k)]=255
+    return ranks
 
 if __name__ == '__main__':
     config = configurer.Configurer(parse_arguments(sys.argv[1:]).workplace)
