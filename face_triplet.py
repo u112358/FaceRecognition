@@ -230,7 +230,7 @@ def parse_arguments(argv):
 if __name__ == '__main__':
     config = configurer.Configurer(parse_arguments(sys.argv[1:]).workplace)
     if not parse_arguments(sys.argv[1:]).workplace =='sweet_home':
-        gpu_config = tf.ConfigProto(allow_soft_placement=True)
+        gpu_config = tf.ConfigProto(allow_soft_placement=False)
         this_session = tf.Session(config=gpu_config)
         model = FaceTriplet(this_session, config)
     else:
