@@ -195,8 +195,8 @@ def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
                 rand_id = np.random.randint(nof_neg_ids)
                 neg_id = neg_ids[rand_id]
                 triplet.append([anchor_id, pos_id, neg_id])
-    return np.random.shuffle(triplet)
-
+    np.random.shuffle(triplet)
+    return triplet
 def triplet_loss(anchor, positive, negative, delta):
     """Calculate the triplet loss according to the FaceNet paper
 
