@@ -45,7 +45,7 @@ class FileReader():
 
     def select_identity(self, nof_person, nof_images):
         images_and_labels = []
-        ids_selected = random.sample(xrange(self.nof_identity), nof_person)
+        ids_selected = random.sample(xrange(1,self.nof_identity+1), nof_person)
         for i in ids_selected:
             images_indices = np.where(self.identity == i)[0]
             print 'id:%d len:%d' % (i, len(images_indices))
