@@ -459,16 +459,16 @@ def inference(images, keep_probability, phase_train=True,
                         weights_regularizer=slim.l2_regularizer(weight_decay),
                         normalizer_fn=slim.batch_norm,
                         normalizer_params=batch_norm_params):
-        return inception_resnet_v1(images, is_training=phase_train,
+        return inception_resnet(images, is_training=phase_train,
                                    dropout_keep_prob=keep_probability, bottleneck_layer_size=bottleneck_layer_size,
                                    reuse=reuse)
 
 
-def inception_resnet_v1(inputs, is_training=True,
+def inception_resnet(inputs, is_training=True,
                         dropout_keep_prob=0.8,
                         bottleneck_layer_size=128,
                         reuse=None,
-                        scope='InceptionResnetV1'):
+                        scope='InceptionResnet'):
     """Creates the Inception Resnet V1 model.
     Args:
       inputs: a 4-D tensor of size [batch_size, height, width, 3].
@@ -484,7 +484,7 @@ def inception_resnet_v1(inputs, is_training=True,
     """
     end_points = {}
 
-    with tf.variable_scope(scope, 'InceptionResnetV1', [inputs], reuse=reuse):
+    with tf.variable_scope(scope, 'InceptionResnet', [inputs], reuse=reuse):
         with slim.arg_scope([slim.batch_norm, slim.dropout],
                             is_training=is_training):
             with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d],
