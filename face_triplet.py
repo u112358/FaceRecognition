@@ -66,7 +66,7 @@ class FaceTriplet():
                                                     self.nof_images_per_id * self.nof_sampled_id, 1])
         # binariesed confusion matrix
         self.result = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
-                                                    self.nof_images_per_id * self.nof_sampled_id, 1])
+                                                  self.nof_images_per_id * self.nof_sampled_id, 1])
         # a pattern to monitor the identity sampling
         self.possible_triplets = tf.placeholder(tf.int16, name='possible_triplets')
         self.sampled_freq = tf.placeholder(tf.float32, [1, 50, 40, 1], name='sampled_freq')
@@ -76,13 +76,12 @@ class FaceTriplet():
 
     def _forward(self):
         net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
-                              weight_decay=0.0,reuse=True)
+                              weight_decay=0.0, reuse=None)
         logits = slim.fully_connected(net, self.embedding_size, activation_fn=None,
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
                                       weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
         embeddings = tf.nn.l2_normalize(logits, dim=1, epsilon=1e-12, name='embeddings')
         return embeddings
-
 
     def _build_loss(self):
         embeddings = self._forward()
@@ -94,8 +93,6 @@ class FaceTriplet():
 
         tf.summary.scalar('loss', total_loss)
         return total_loss
-
-
 
     def train(self):
         init_op = tf.global_variables_initializer()
@@ -112,20 +109,20 @@ class FaceTriplet():
         tf.summary.image('image', self.image_in, 24)
         with tf.name_scope('ToCheck'):
             tf.summary.image('affinity', self.affinity, 1)
-            tf.summary.image('result',self.result)
+            tf.summary.image('result', self.result)
         tf.summary.scalar('possible triplets', self.possible_triplets)
         tf.summary.image('sampled_freq', self.sampled_freq)
         while triplet_select_times < 19999:
             print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
                 self.nof_sampled_id, self.nof_images_per_id)
             time_start = time.time()
-            image, label, image_path,sampled_id = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
+            image, label, image_path, sampled_id = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
             sampled_freq[sampled_id] += 1
             emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
             aff = []
             for idx in range(len(label)):
                 aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
-            result =get_rank_k(aff,self.nof_images_per_id)
+            result = get_rank_k(aff, self.nof_images_per_id)
 
             print 'Time Elapsed %lf' % (time.time() - time_start)
 
@@ -140,7 +137,8 @@ class FaceTriplet():
             inner_step = 0
             for i in xrange(0, nof_triplet, self.batch_size // 3):
                 if i + self.batch_size // 3 < nof_triplet:
-                    triplet_image, triplet_label = CACD.read_triplet(image_path,label,triplet, i, self.batch_size // 3)
+                    triplet_image, triplet_label = CACD.read_triplet(image_path, label, triplet, i,
+                                                                     self.batch_size // 3)
                     triplet_image = np.reshape(triplet_image, [-1, 250, 250, 3])
                     triplet_label = np.reshape(triplet_label, [-1])
                     start_time = time.time()
@@ -152,10 +150,10 @@ class FaceTriplet():
                                                                                                          self.nof_images_per_id * self.nof_sampled_id,
                                                                                                          1]),
                                                                self.possible_triplets: nof_triplet,
-                                                               self.result:np.reshape(result, [-1,
-                                                                                                         self.nof_images_per_id * self.nof_sampled_id,
-                                                                                                         self.nof_images_per_id * self.nof_sampled_id,
-                                                                                                         1]),
+                                                               self.result: np.reshape(result, [-1,
+                                                                                                self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                1]),
                                                                self.sampled_freq: np.reshape(sampled_freq,
                                                                                              [1, 50, 40, 1])})
                     print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
@@ -164,7 +162,7 @@ class FaceTriplet():
                     writer_train.add_summary(summary, step)
                     step += 1
                     inner_step += 1
-                    if inner_step%50==0:
+                    if inner_step % 50 == 0:
                         emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
                         aff = []
                         for idx in range(len(label)):
@@ -190,6 +188,8 @@ def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
                 triplet.append([anchor_id, pos_id, neg_id])
     np.random.shuffle(triplet)
     return triplet
+
+
 def triplet_loss(anchor, positive, negative, delta):
     """Calculate the triplet loss according to the FaceNet paper
 
@@ -219,19 +219,21 @@ def parse_arguments(argv):
 
     return parser.parse_args(argv)
 
-def get_rank_k(aff,k):
+
+def get_rank_k(aff, k):
     temp = np.argsort(aff)
     ranks = np.arange(len(aff))[np.argsort(temp)]
-    ranks[np.where(ranks>k)]=255
+    ranks[np.where(ranks > k)] = 255
     return ranks
+
 
 if __name__ == '__main__':
     config = configurer.Configurer(parse_arguments(sys.argv[1:]).workplace)
-    if not parse_arguments(sys.argv[1:]).workplace =='sweet_home':
+    if not parse_arguments(sys.argv[1:]).workplace == 'sweet_home':
         gpu_config = tf.ConfigProto(allow_soft_placement=False)
         this_session = tf.Session(config=gpu_config)
         model = FaceTriplet(this_session, config)
     else:
         this_session = tf.Session()
-        model = FaceTriplet(this_session,config)
+        model = FaceTriplet(this_session, config)
     model.train()
