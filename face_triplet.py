@@ -70,10 +70,8 @@ class FaceTriplet():
         # a pattern to monitor the identity sampling
         self.possible_triplets = tf.placeholder(tf.int16, name='possible_triplets')
         self.sampled_freq = tf.placeholder(tf.float32, [1, 50, 40, 1], name='sampled_freq')
-        self.net = self._build_net()
         self.embeddings = self._forward()
         self.loss = self._build_loss()
-        self.accuracy = self._build_accuracy()
         self.opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.loss)
 
     def _forward(self):
@@ -83,24 +81,9 @@ class FaceTriplet():
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
                                       weights_regularizer=slim.l2_regularizer(0.0), scope='logits', reuse=True)
         embeddings = tf.nn.l2_normalize(logits, dim=1, epsilon=1e-12, name='embeddings')
+        tf.get_variable_scope('embeddings')
         return embeddings
 
-    def _build_net(self):
-        # convolution layers
-        net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
-                              weight_decay=0.0)
-
-        # with tf.variable_scope('output') as scope:
-        #     weights = tf.get_variable('weights', [1024, self.class_num], dtype=tf.float32,
-        #                               initializer=tf.truncated_normal_initializer(stddev=1e-2))
-        #     biases = tf.get_variable('biases', [self.class_num], dtype=tf.float32, initializer=tf.constant_initializer())
-        #     output = tf.add(tf.matmul(net, weights), biases, name=scope.name)
-        #     nb.variable_summaries(weights,'weights')
-        #     nb.variable_summaries(biases,'biases')
-        logits = slim.fully_connected(net, self.embedding_size, activation_fn=None,
-                                      weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
-                                      weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
-        return logits
 
     def _build_loss(self):
         embeddings = self._forward()
@@ -113,14 +96,7 @@ class FaceTriplet():
         tf.summary.scalar('loss', total_loss)
         return total_loss
 
-    def _build_accuracy(self):
-        with tf.name_scope('accuracy'):
-            with tf.name_scope('correct_prediction'):
-                correct_prediction = tf.equal(tf.argmax(self.net, 1), tf.cast(self.label_in, tf.int64))
-            with tf.name_scope('accuracy'):
-                accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-                # tf.summary.scalar('accuracy', accuracy)
-        return accuracy
+
 
     def train(self):
         init_op = tf.global_variables_initializer()
