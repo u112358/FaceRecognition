@@ -189,6 +189,12 @@ class FaceTriplet():
                     writer_train.add_summary(summary, step)
                     step += 1
                     inner_step += 1
+                    if inner_step%50==0:
+                        emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
+                        aff = []
+                        for idx in range(len(label)):
+                            aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
+                        result = get_rank_k(aff, self.nof_images_per_id)
             triplet_select_times += 1
 
 
