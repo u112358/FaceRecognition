@@ -84,7 +84,7 @@ class FaceTriplet():
         return embeddings
 
     def _build_loss(self):
-        embeddings = self._forward()
+        embeddings = self.embeddings
         anchor = embeddings[0:self.batch_size:3][:]
         pos = embeddings[1:self.batch_size:3][:]
         neg = embeddings[2:self.batch_size:3][:]
