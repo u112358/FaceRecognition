@@ -145,7 +145,7 @@ class FaceTriplet():
                 self.nof_sampled_id, self.nof_images_per_id)
             time_start = time.time()
             image, label, image_path,sampled_id = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
-            sampled_freq[sampled_id-1] += 1
+            sampled_freq[sampled_id] += 1
             emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
             aff = []
             for idx in range(len(label)):

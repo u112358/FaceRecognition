@@ -25,6 +25,7 @@ import random as random
 import numpy as np
 from scipy import ndimage
 from collections import Counter
+import tensorflow as tf
 
 
 class FileReader():
