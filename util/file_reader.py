@@ -54,7 +54,7 @@ class FileReader():
             images_selected = random.sample(images_indices, nof_images)
             for image in images_selected:
                 images_and_labels.append([image, i])
-                file.write('%d;\t%d'% (image,i))
+                file.write('%d;\t%d\n'% (image,i))
         file.close()
         image_data = []
         label_data = []
