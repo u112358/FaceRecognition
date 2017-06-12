@@ -36,15 +36,6 @@ import configurer
 
 
 class FaceTriplet():
-    """Summary of class here.
-
-    Longer class information....
-    Longer class information....
-
-    Attributes:
-        likes_spam: A boolean indicating if we like SPAM or not.
-        eggs: An integer count of the eggs we have laid.
-    """
 
     def __init__(self, sess, config):
         self.sess = sess
@@ -52,12 +43,12 @@ class FaceTriplet():
         self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
         self.data_dir = config.data_dir
         self.model = config.model
-        self.learning_rate = 0.1
+        self.learning_rate = 0.0618
         self.batch_size = 30
         self.embedding_size = 2000
         self.max_epoch = 20
         self.delta = 0.2
-        self.nof_sampled_id = 45
+        self.nof_sampled_id = 32
         self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
@@ -93,7 +84,9 @@ class FaceTriplet():
 
         tf.summary.scalar('loss', total_loss)
         return total_loss
-
+    # def _update_lr(self,lr):
+    #     self.learning_rate = lr
+    #     self.opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.loss)
     def train(self):
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
