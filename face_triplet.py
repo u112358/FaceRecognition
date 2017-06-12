@@ -81,7 +81,6 @@ class FaceTriplet():
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
                                       weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
         embeddings = tf.nn.l2_normalize(logits, dim=1, epsilon=1e-12, name='embeddings')
-        tf.get_variable_scope('embeddings')
         return embeddings
 
 
