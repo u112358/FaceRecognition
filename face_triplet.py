@@ -48,7 +48,7 @@ class FaceTriplet():
         self.embedding_size = 2000
         self.max_epoch = 20
         self.delta = 0.2
-        self.nof_sampled_id = 50
+        self.nof_sampled_id = 45
         self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
