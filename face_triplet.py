@@ -76,7 +76,7 @@ class FaceTriplet():
 
     def _forward(self):
         net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
-                              weight_decay=0.0)
+                              weight_decay=0.0,reuse=False)
         logits = slim.fully_connected(net, self.embedding_size, activation_fn=None,
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
                                       weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
