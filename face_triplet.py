@@ -61,10 +61,13 @@ class FaceTriplet():
         self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
+        # confusion matrix to display in tensorboard
         self.affinity = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
                                                     self.nof_images_per_id * self.nof_sampled_id, 1])
+        # binariesed confusion matrix
         self.result = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
                                                     self.nof_images_per_id * self.nof_sampled_id, 1])
+        # a pattern to monitor the identity sampling
         self.possible_triplets = tf.placeholder(tf.int16, name='possible_triplets')
         self.sampled_freq = tf.placeholder(tf.float32, [1, 50, 40, 1], name='sampled_freq')
         self.net = self._build_net()
@@ -123,7 +126,7 @@ class FaceTriplet():
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
         saver = tf.train.Saver()
-        saver.restore(self.sess, self.model)
+        # saver.restore(self.sess, self.model)
         # saver = tf.train.Saver()
         CACD = fr.FileReader(self.data_dir, 'cele.mat')
         triplet_select_times = 1
@@ -142,7 +145,7 @@ class FaceTriplet():
                 self.nof_sampled_id, self.nof_images_per_id)
             time_start = time.time()
             image, label, image_path,sampled_id = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
-            sampled_freq[sampled_id] += 1
+            sampled_freq[sampled_id-1] += 1
             emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
             aff = []
             for idx in range(len(label)):

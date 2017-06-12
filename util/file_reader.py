@@ -45,14 +45,16 @@ class FileReader():
 
     def select_identity(self, nof_person, nof_images):
         images_and_labels = []
-        ids_selected = random.sample(xrange(1,self.nof_identity+1), nof_person)
+        ids_selected = random.sample(xrange(self.nof_identity), nof_person)
+        file = open('./select_log.txt','a')
         for i in ids_selected:
-            images_indices = np.where(self.identity == i)[0]
-            print 'id:%d len:%d' % (i, len(images_indices))
+            images_indices = np.where(self.identity == i+1)[0]
+            print 'id:%d len:%d' % (i+1, len(images_indices))
             images_selected = random.sample(images_indices, nof_images)
             for image in images_selected:
                 images_and_labels.append([image, i])
-
+                file.write('%d;\t%d'% (image,i))
+        file.close()
         image_data = []
         label_data = []
         image_path = []
