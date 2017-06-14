@@ -43,11 +43,11 @@ class FaceTriplet():
         self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
         self.data_dir = config.data_dir
         self.model = config.model
-        self.learning_rate = 0.0618
+        self.learning_rate = 0.01
         self.batch_size = 30
         self.embedding_size = 2000
         self.max_epoch = 20
-        self.delta = 0.2
+        self.delta = 0.314
         self.nof_sampled_id = 45
         self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
