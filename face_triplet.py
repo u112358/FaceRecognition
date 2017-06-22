@@ -26,14 +26,11 @@ import numpy as np
 from datetime import datetime
 import time
 from util import net_builder as nb
-from util import data_reader as dr
 from util import file_reader as fr
-import scipy.io as sio
 import tensorflow.contrib.slim as slim
 import argparse
 import sys
 import configurer
-
 
 class FaceTriplet():
 
@@ -43,13 +40,15 @@ class FaceTriplet():
         self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
         self.data_dir = config.data_dir
         self.model = config.model
+        self.val_dir = config.val_dir
+        self.val_list = config.val_list
         self.learning_rate = 0.01
         self.batch_size = 30
         self.embedding_size = 2000
         self.max_epoch = 20
         self.delta = 0.314
-        self.nof_sampled_id = 45
-        self.nof_images_per_id = 20
+        self.nof_sampled_id = 5
+        self.nof_images_per_id = 5
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
         # confusion matrix to display in tensorboard
@@ -93,11 +92,11 @@ class FaceTriplet():
         saver = tf.train.Saver()
         # saver.restore(self.sess, self.model)
         # saver = tf.train.Saver()
-        CACD = fr.FileReader(self.data_dir, 'cele.mat')
+        CACD = fr.FileReader(self.data_dir, 'cele.mat',contain_val=True,val_data_dir=self.val_dir,val_list=self.val_list)
         triplet_select_times = 1
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
-        step = 1
+        step = 0
         sampled_freq = np.zeros([2000, 1])
         tf.summary.image('image', self.image_in, 24)
         with tf.name_scope('ToCheck'):
@@ -155,12 +154,28 @@ class FaceTriplet():
                     writer_train.add_summary(summary, step)
                     step += 1
                     inner_step += 1
-                    if inner_step % 50 == 0:
+                    if inner_step % 5 == 0:
                         emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
                         aff = []
                         for idx in range(len(label)):
                             aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
                         result = get_rank_k(aff, self.nof_images_per_id)
+                    if step % 5 ==0:
+                        # perform validate
+                        val_iters = CACD.val_size//20
+                        pre_label=[]
+                        for _ in range(val_iters):
+                            validate_data, validate_label = CACD.get_test(20)
+                            validate_data = np.reshape(validate_data,[-1,250,250,3])
+                            emb = self.sess.run(self.embeddings,feed_dict={self.image_in:validate_data})
+                            for j in range(20):
+                                if np.sum(np.square(emb[j*2]-emb[j*2+1])) <1:
+                                    pre_label.append(1)
+                                else:
+                                    pre_label.append(0)
+                        print pre_label
+
+
             triplet_select_times += 1
 
 
@@ -202,6 +217,7 @@ def triplet_loss(anchor, positive, negative, delta):
         loss = tf.reduce_mean(tf.maximum(basic_loss, 0.0), 0)
 
     return loss
+
 
 
 def parse_arguments(argv):
