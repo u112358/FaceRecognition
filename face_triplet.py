@@ -47,8 +47,8 @@ class FaceTriplet():
         self.embedding_size = 2000
         self.max_epoch = 20
         self.delta = 0.314
-        self.nof_sampled_id = 5
-        self.nof_images_per_id = 5
+        self.nof_sampled_id = 45
+        self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
         # confusion matrix to display in tensorboard
@@ -173,9 +173,10 @@ class FaceTriplet():
                                     pre_label.append(1)
                                 else:
                                     pre_label.append(0)
-                        print pre_label
-
-
+                        correct = np.sum(abs(np.array(pre_label)-np.array(validate_label)))
+                        acc = correct/CACD.val_size
+                        print 'acc:%lf' % acc
+                        tf.summary.scalar('val_acc',acc)
             triplet_select_times += 1
 
 
