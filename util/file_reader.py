@@ -49,7 +49,7 @@ class FileReader():
             for i in val_file.readlines():
                 im1, im2, label = i.split(' ')
                 self.val_img_pair.append([self.val_data_dir + im1, self.val_data_dir + im2])
-                self.val_label.append(label)
+                self.val_label.append(int(label))
                 self.val_size += 1
 
     def __str__(self):

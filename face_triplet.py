@@ -160,25 +160,25 @@ class FaceTriplet():
                         for idx in range(len(label)):
                             aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
                         result = get_rank_k(aff, self.nof_images_per_id)
-                    if step % 5 ==0:
+                    if step % 500 ==0:
                         # perform validate
                         val_iters = CACD.val_size//20
                         pre_label=[]
+                        true_label=[]
                         for _ in range(val_iters):
                             validate_data, validate_label = CACD.get_test(20)
                             validate_data = np.reshape(validate_data,[-1,250,250,3])
+                            true_label.append(validate_label)
                             emb = self.sess.run(self.embeddings,feed_dict={self.image_in:validate_data})
                             for j in range(20):
                                 if np.sum(np.square(emb[j*2]-emb[j*2+1])) <1:
                                     pre_label.append(1)
                                 else:
                                     pre_label.append(0)
-                        correct = np.sum(abs(np.array(pre_label)-np.array(validate_label)))
-                        acc = correct/CACD.val_size
+                        true_label = np.reshape(true_label,(-1,))
+                        correct = np.sum(abs(np.array(pre_label)-np.array(true_label)))
+                        acc = float(correct)/CACD.val_size
                         print 'acc:%lf' % acc
-                        tf.summary.scalar('val_acc',acc)
-            triplet_select_times += 1
-
 
 def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
     aff = []
