@@ -59,6 +59,7 @@ class FaceTriplet():
                                                   self.nof_images_per_id * self.nof_sampled_id, 1])
         # a pattern to monitor the identity sampling
         self.possible_triplets = tf.placeholder(tf.int16, name='possible_triplets')
+        self.val_acc = tf.placeholder(tf.float32,name='val_acc')
         self.sampled_freq = tf.placeholder(tf.float32, [1, 50, 40, 1], name='sampled_freq')
         self.embeddings = self._forward()
         self.loss = self._build_loss()
@@ -98,11 +99,13 @@ class FaceTriplet():
         writer_test = tf.summary.FileWriter(self.log_dir + '/test', self.sess.graph)
         step = 0
         sampled_freq = np.zeros([2000, 1])
+        acc = 0
         tf.summary.image('image', self.image_in, 24)
         with tf.name_scope('ToCheck'):
             tf.summary.image('affinity', self.affinity, 1)
             tf.summary.image('result', self.result)
         tf.summary.scalar('possible triplets', self.possible_triplets)
+        tf.summary.scalar('val_acc',self.val_acc)
         tf.summary.image('sampled_freq', self.sampled_freq)
         while triplet_select_times < 19999:
             print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
@@ -142,6 +145,7 @@ class FaceTriplet():
                                                                                                          self.nof_images_per_id * self.nof_sampled_id,
                                                                                                          1]),
                                                                self.possible_triplets: nof_triplet,
+                                                               self.val_acc: acc,
                                                                self.result: np.reshape(result, [-1,
                                                                                                 self.nof_images_per_id * self.nof_sampled_id,
                                                                                                 self.nof_images_per_id * self.nof_sampled_id,
