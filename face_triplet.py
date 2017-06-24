@@ -183,6 +183,7 @@ class FaceTriplet():
                         correct = np.sum(abs(np.array(pre_label)-np.array(true_label)))
                         acc = float(correct)/CACD.val_size
                         print 'acc:%lf' % acc
+            triplet_select_times+=1
 
 def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
     aff = []
