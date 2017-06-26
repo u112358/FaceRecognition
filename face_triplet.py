@@ -32,8 +32,8 @@ import argparse
 import sys
 import configurer
 
-class FaceTriplet():
 
+class FaceTriplet():
     def __init__(self, sess, config):
         self.sess = sess
         self.subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
@@ -59,7 +59,7 @@ class FaceTriplet():
                                                   self.nof_images_per_id * self.nof_sampled_id, 1])
         # a pattern to monitor the identity sampling
         self.possible_triplets = tf.placeholder(tf.int16, name='nof_possible_triplets')
-        self.val_acc = tf.placeholder(tf.float32,name='val_accuracy')
+        self.val_acc = tf.placeholder(tf.float32, name='val_accuracy')
         self.sampled_freq = tf.placeholder(tf.float32, [1, 50, 40, 1], name='sampled_freq_image')
         self.embeddings = self._forward()
         self.loss = self._build_loss()
@@ -84,6 +84,7 @@ class FaceTriplet():
 
         tf.summary.scalar('loss', total_loss)
         return total_loss
+
     # def _update_lr(self,lr):
     #     self.learning_rate = lr
     #     self.opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.loss)
@@ -93,7 +94,8 @@ class FaceTriplet():
         saver = tf.train.Saver()
         # saver.restore(self.sess, self.model)
         # saver = tf.train.Saver()
-        CACD = fr.FileReader(self.data_dir, 'cele.mat',contain_val=True,val_data_dir=self.val_dir,val_list=self.val_list)
+        CACD = fr.FileReader(self.data_dir, 'cele.mat', contain_val=True, val_data_dir=self.val_dir,
+                             val_list=self.val_list)
         triplet_select_times = 1
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
         writer_train_1 = tf.summary.FileWriter(self.log_dir + '/train/margin=0.5', self.sess.graph)
@@ -109,7 +111,7 @@ class FaceTriplet():
         tf.summary.scalar('possible triplets', self.possible_triplets)
         tf.summary.image('sampled_freq', self.sampled_freq)
 
-        val_summary_op = tf.summary.scalar('val_acc',self.val_acc)
+        val_summary_op = tf.summary.scalar('val_acc', self.val_acc)
         while triplet_select_times < 19999:
             print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
                 self.nof_sampled_id, self.nof_images_per_id)
@@ -167,29 +169,29 @@ class FaceTriplet():
                         for idx in range(len(label)):
                             aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
                         result = get_rank_k(aff, self.nof_images_per_id)
-                    if step % 200 ==0:
+                    if step % 200 == 0:
                         # perform validate
-                        val_iters = CACD.val_size//20
-                        true_label=[]
-                        emb=[]
+                        val_iters = CACD.val_size // 20
+                        true_label = []
+                        emb = []
                         for _ in range(val_iters):
                             validate_data, validate_label = CACD.get_test(20)
-                            validate_data = np.reshape(validate_data,[-1,250,250,3])
+                            validate_data = np.reshape(validate_data, [-1, 250, 250, 3])
                             true_label.append(validate_label)
-                            emb_bacth = self.sess.run(self.embeddings,feed_dict={self.image_in:validate_data})
+                            emb_bacth = self.sess.run(self.embeddings, feed_dict={self.image_in: validate_data})
                             emb.append(emb_bacth)
-                        true_label = np.reshape(true_label,(-1,))
-                        emb = np.reshape(emb,(-1,self.embedding_size))
+                        true_label = np.reshape(true_label, (-1,))
+                        emb = np.reshape(emb, (-1, self.embedding_size))
                         pre_label = []
                         for j in range(CACD.val_size):
-                            if np.sum(np.square(emb[j*2]-emb[j*2+1])) <0.5:
+                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 0.5:
                                 pre_label.append(1)
                             else:
                                 pre_label.append(0)
-                        correct = np.sum(abs(np.array(pre_label)-np.array(true_label)))
-                        acc = float(correct)/CACD.val_size
-                        sum = self.sess.run(val_summary_op,feed_dict={self.val_acc:acc})
-                        writer_train_1.add_summary(sum,step)
+                        correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
+                        acc = float(correct) / CACD.val_size
+                        sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
+                        writer_train_1.add_summary(sum, step)
 
                         pre_label = []
                         for j in range(CACD.val_size):
@@ -223,6 +225,7 @@ class FaceTriplet():
                         acc = float(correct) / CACD.val_size
                         sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
                         writer_train_4.add_summary(sum, step)
+            triplet_select_times += 1
 
 
 def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
@@ -263,7 +266,6 @@ def triplet_loss(anchor, positive, negative, delta):
         loss = tf.reduce_mean(tf.maximum(basic_loss, 0.0), 0)
 
     return loss
-
 
 
 def parse_arguments(argv):
