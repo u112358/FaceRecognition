@@ -51,6 +51,7 @@ class FileReader():
                 self.val_img_pair.append([self.val_data_dir + im1, self.val_data_dir + im2])
                 self.val_label.append(int(label))
                 self.val_size += 1
+        self.val_size = 200
 
     def __str__(self):
         return 'Data directory:\t' + self.prefix + '\nIdentity Num:\t' + str(self.nof_identity)
