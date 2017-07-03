@@ -42,11 +42,11 @@ class FaceTriplet():
         self.model = config.model
         self.val_dir = config.val_dir
         self.val_list = config.val_list
-        self.learning_rate = 0.01
+        self.learning_rate = 0.008
         self.batch_size = 30
         self.embedding_size = 2000
         self.max_epoch = 20
-        self.delta = 0.314
+        self.delta = 0.25
         self.nof_sampled_id = 45
         self.nof_images_per_id = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
@@ -225,6 +225,8 @@ class FaceTriplet():
                         acc = float(correct) / CACD.val_size
                         sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
                         writer_train_4.add_summary(sum, step)
+                    if step %10000 ==0:
+                        saver.save(self.sess,'DRFRModel',step)
             triplet_select_times += 1
 
 
