@@ -91,8 +91,10 @@ class FaceTriplet():
     def train(self):
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
+        step = 0
         saver = tf.train.Saver()
-        # saver.restore(self.sess, self.model)
+        saver.restore(self.sess, self.model)
+        step = 60000
         # saver = tf.train.Saver()
         CACD = fr.FileReader(self.data_dir, 'cele.mat', contain_val=True, val_data_dir=self.val_dir,
                              val_list=self.val_list)
@@ -102,7 +104,6 @@ class FaceTriplet():
         writer_train_2 = tf.summary.FileWriter(self.log_dir + '/train/margin=1', self.sess.graph)
         writer_train_3 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.3', self.sess.graph)
         writer_train_4 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.6', self.sess.graph)
-        step = 0
         sampled_freq = np.zeros([2000, 1])
         acc = 0
         with tf.name_scope('ToCheck'):
