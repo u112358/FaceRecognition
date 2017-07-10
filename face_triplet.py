@@ -94,7 +94,7 @@ class FaceTriplet():
         step = 0
         saver = tf.train.Saver()
         saver.restore(self.sess, self.model)
-        step = 60000
+        step = 120000
         # saver = tf.train.Saver()
         CACD = fr.FileReader(self.data_dir, 'cele.mat', contain_val=True, val_data_dir=self.val_dir,
                              val_list=self.val_list)
