@@ -71,8 +71,12 @@ class FaceTriplet():
         logits = slim.fully_connected(net, self.embedding_size, activation_fn=None,
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
                                       weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
+        age_logits = slim.fully_connected(net,self.embedding_size,activation_fn=None,
+                                         weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
+                                         weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
         embeddings = tf.nn.l2_normalize(logits, dim=1, epsilon=1e-12, name='embeddings')
-        return embeddings
+        age_embeddings = tf.nn.l2_normalize(age_logits,dim=1,epsilon=1e-12,name='age_embeddings')
+        return embeddings,age_embeddings
 
     def _build_loss(self):
         embeddings = self.embeddings
@@ -94,13 +98,13 @@ class FaceTriplet():
         step = 0
         saver = tf.train.Saver()
         saver.restore(self.sess, self.model)
-        step = 60000
+        step = 120000
         # saver = tf.train.Saver()
         CACD = fr.FileReader(self.data_dir, 'cele.mat', contain_val=True, val_data_dir=self.val_dir,
                              val_list=self.val_list)
         triplet_select_times = 1
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
-        writer_train_1 = tf.summary.FileWriter(self.log_dir + '/train/margin=2.5', self.sess.graph)
+        writer_train_1 = tf.summary.FileWriter(self.log_dir + '/train/margin=0.5', self.sess.graph)
         writer_train_2 = tf.summary.FileWriter(self.log_dir + '/train/margin=1', self.sess.graph)
         writer_train_3 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.3', self.sess.graph)
         writer_train_4 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.6', self.sess.graph)
@@ -185,7 +189,7 @@ class FaceTriplet():
                         emb = np.reshape(emb, (-1, self.embedding_size))
                         pre_label = []
                         for j in range(CACD.val_size):
-                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 2.5:
+                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 0.5:
                                 pre_label.append(1)
                             else:
                                 pre_label.append(0)

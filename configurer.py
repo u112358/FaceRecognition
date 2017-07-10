@@ -41,7 +41,7 @@ class Configurer():
         elif workplace=='server':
             self.data_dir = '/scratch/BingZhang/dataset/CACD2000/'
             #self.model= '/scratch/BingZhang/FaceRecognition.close/models/20170529-141612-52288'
-            self.model = '/scratch/BingZhang/FaceRecognition/DRFRModel-60000'
+            self.model = '/scratch/BingZhang/FaceRecognition/DRFRModel-120000'
             self.val_dir = '/scratch/BingZhang/lfw/'
             self.val_list = '/scratch/BingZhang/lfw/lfw_trip_val.txt'
         elif workplace=='sweet_home':
