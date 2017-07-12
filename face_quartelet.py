@@ -33,7 +33,7 @@ import sys
 import configurer
 
 
-class FaceTriplet():
+class FaceQuartet():
     def __init__(self, sess, config):
         self.sess = sess
         self.subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')

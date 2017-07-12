@@ -76,6 +76,15 @@ class FileReader():
             image_path.append(self.prefix + self.path[image][0].encode('utf-8'))
         return image_data, label_data, image_path, ids_selected
 
+    def select_quartet(self,nof_person, nof_images):
+        images_and_labels = []
+        ages = []
+        ids_selected = random.sample(xrange(self.nof_identity), nof_person)
+        for i in ids_selected:
+            ages.append(self.age[np.where(self.identity==i+1)[0]])
+        return ages
+
+
     def read_triplet(self, image_path, label, triplet, i, len):
         triplet_image = []
         triplet_label = []
@@ -86,6 +95,11 @@ class FileReader():
             triplet_image.append([anchor, pos, neg])
             triplet_label.append([label[triplet[idx][0]], label[triplet[idx][1]], label[triplet[idx][2]]])
         return triplet_image, triplet_label
+
+
+
+
+
 
     def get_test(self, n):
         data = []
