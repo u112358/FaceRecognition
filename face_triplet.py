@@ -94,13 +94,13 @@ class FaceTriplet():
         step = 0
         saver = tf.train.Saver()
         saver.restore(self.sess, self.model)
-        step = 60000
+        step = 90000
         # saver = tf.train.Saver()
         CACD = fr.FileReader(self.data_dir, 'cele.mat', contain_val=True, val_data_dir=self.val_dir,
                              val_list=self.val_list)
         triplet_select_times = 1
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
-        writer_train_1 = tf.summary.FileWriter(self.log_dir + '/train/margin=0.5', self.sess.graph)
+        writer_train_1 = tf.summary.FileWriter(self.log_dir + '/train/margin=2.0', self.sess.graph)
         writer_train_2 = tf.summary.FileWriter(self.log_dir + '/train/margin=1', self.sess.graph)
         writer_train_3 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.3', self.sess.graph)
         writer_train_4 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.6', self.sess.graph)
@@ -185,7 +185,7 @@ class FaceTriplet():
                         emb = np.reshape(emb, (-1, self.embedding_size))
                         pre_label = []
                         for j in range(CACD.val_size):
-                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 0.5:
+                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 2.0:
                                 pre_label.append(1)
                             else:
                                 pre_label.append(0)

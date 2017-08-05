@@ -13,9 +13,12 @@ class FileReaderTest(TestCase):
     cele1 = celebrity.Celebrity(CACD.age[0], CACD.identity[0], str(CACD.path[0]))
     print cele1.__str__()
     print CACD.__str__()
-    data = CACD.select_identity(2, 2)
-    sio.savemat('test.mat', {'data': data})
-
-    validate_data, validate_label = CACD.get_test(10)
-    validate_data= np.reshape(validate_data, [-1, 250, 250, 3])
-    sio.savemat('val.mat', {'val': validate_data})
+    ages,idx = CACD.select_quartet(20,20)
+    print ages
+    print idx
+    # data = CACD.select_identity(2, 2)
+    # sio.savemat('test.mat', {'data': data})
+    #
+    # validate_data, validate_label = CACD.get_test(10)
+    # validate_data= np.reshape(validate_data, [-1, 250, 250, 3])
+    # sio.savemat('val.mat', {'val': validate_data})

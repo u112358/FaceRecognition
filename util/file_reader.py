@@ -56,6 +56,14 @@ class FileReader():
     def __str__(self):
         return 'Data directory:\t' + self.prefix + '\nIdentity Num:\t' + str(self.nof_identity)
 
+    def select_age(self, nof_age, nof_images):
+        images_and_labels=[]
+        ages_selected = random.sample(range(14,63),nof_age)
+        for i in ages_selected:
+            images_indices = np.where(self.age==i)[0]
+            print 'age:%d len:%d' % (i,len(images_indices))
+            images_selected = random.sample(images_indices,nof_images)
+
     def select_identity(self, nof_person, nof_images):
         images_and_labels = []
         # ids_selected \in [0,1999]
