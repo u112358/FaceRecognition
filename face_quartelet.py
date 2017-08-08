@@ -47,7 +47,7 @@ class FaceQuartet():
         self.embedding_size = 2000
         self.max_epoch = 20
         self.delta = 0.25
-        self.nof_sampled_id = 45
+        self.nof_sampled_id = 20
         self.nof_images_per_id = 20
         self.nof_sampled_age = 20
         self.nof_images_per_age = 20
