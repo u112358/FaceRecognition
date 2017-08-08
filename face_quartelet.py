@@ -37,7 +37,7 @@ class FaceQuartet():
     def __init__(self, sess, config):
         self.sess = sess
         self.subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
-        self.log_dir = os.path.join(os.path.expanduser('logs'), self.subdir)
+        self.log_dir = os.path.join(os.path.expanduser('logs\quartet'), self.subdir)
         self.data_dir = config.data_dir
         self.model = config.model
         self.val_dir = config.val_dir
@@ -49,6 +49,8 @@ class FaceQuartet():
         self.delta = 0.25
         self.nof_sampled_id = 45
         self.nof_images_per_id = 20
+        self.nof_sampled_age = 20
+        self.nof_images_per_age = 20
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3])
         self.label_in = tf.placeholder(tf.float32, [None])
         # confusion matrix to display in tensorboard
@@ -61,9 +63,12 @@ class FaceQuartet():
         self.possible_triplets = tf.placeholder(tf.int16, name='nof_possible_triplets')
         self.val_acc = tf.placeholder(tf.float32, name='val_accuracy')
         self.sampled_freq = tf.placeholder(tf.float32, [1, 50, 40, 1], name='sampled_freq_image')
-        self.embeddings = self._forward()
-        self.loss = self._build_loss()
-        self.opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.loss)
+        self.id_embeddings, self.age_embeddings = self._forward()
+        self.id_loss = self._build_loss(self.id_embeddings)
+        self.age_loss = self._build_loss(self.age_embeddings)
+        # self.loss = self.id_loss+self.age_loss
+        self.id_opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.id_loss)
+        self.age_opt = tf.train.AdamOptimizer(self.learning_rate,beta1=0.9,beta2=0.999,epsilon=0.1).minimize(self.age_loss)
 
     def _forward(self):
         net, _ = nb.inference(images=self.image_in, keep_probability=1.0, bottleneck_layer_size=128, phase_train=True,
@@ -71,15 +76,16 @@ class FaceQuartet():
         logits = slim.fully_connected(net, self.embedding_size, activation_fn=None,
                                       weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
                                       weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
-        age_logits = slim.fully_connected(net,self.embedding_size,activation_fn=None,
+        id_logits = slim.fully_connected(logits,128,activation_fn=None,weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
+                                         weights_regularizer=slim.l2_regularizer(0.0), scope='id_logits')
+        age_logits = slim.fully_connected(logits,128,activation_fn=None,
                                          weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
-                                         weights_regularizer=slim.l2_regularizer(0.0), scope='logits')
-        embeddings = tf.nn.l2_normalize(logits, dim=1, epsilon=1e-12, name='embeddings')
+                                         weights_regularizer=slim.l2_regularizer(0.0), scope='age_logits')
+        id_embeddings = tf.nn.l2_normalize(id_logits, dim=1, epsilon=1e-12, name='id_embeddings')
         age_embeddings = tf.nn.l2_normalize(age_logits,dim=1,epsilon=1e-12,name='age_embeddings')
-        return embeddings,age_embeddings
+        return id_embeddings, age_embeddings
 
-    def _build_loss(self):
-        embeddings = self.embeddings
+    def _build_loss(self,embeddings):
         anchor = embeddings[0:self.batch_size:3][:]
         pos = embeddings[1:self.batch_size:3][:]
         neg = embeddings[2:self.batch_size:3][:]
@@ -97,17 +103,17 @@ class FaceQuartet():
         self.sess.run(init_op)
         step = 0
         saver = tf.train.Saver()
-        saver.restore(self.sess, self.model)
-        step = 120000
+        # saver.restore(self.sess, self.model)
+        # step = 120000
         # saver = tf.train.Saver()
         CACD = fr.FileReader(self.data_dir, 'cele.mat', contain_val=True, val_data_dir=self.val_dir,
                              val_list=self.val_list)
         triplet_select_times = 1
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
-        writer_train_1 = tf.summary.FileWriter(self.log_dir + '/train/margin=0.5', self.sess.graph)
-        writer_train_2 = tf.summary.FileWriter(self.log_dir + '/train/margin=1', self.sess.graph)
-        writer_train_3 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.3', self.sess.graph)
-        writer_train_4 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.6', self.sess.graph)
+        # writer_train_1 = tf.summary.FileWriter(self.log_dir + '/train/margin=0.5', self.sess.graph)
+        # writer_train_2 = tf.summary.FileWriter(self.log_dir + '/train/margin=1', self.sess.graph)
+        # writer_train_3 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.3', self.sess.graph)
+        # writer_train_4 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.6', self.sess.graph)
         sampled_freq = np.zeros([2000, 1])
         acc = 0
         with tf.name_scope('ToCheck'):
@@ -118,26 +124,27 @@ class FaceQuartet():
 
         val_summary_op = tf.summary.scalar('val_acc', self.val_acc)
         while triplet_select_times < 19999:
-            print 'start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
+            # ID step
+            print '!!!!!!!!!ID!!!!!!!!!!start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
                 self.nof_sampled_id, self.nof_images_per_id)
             time_start = time.time()
             image, label, image_path, sampled_id = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
             sampled_freq[sampled_id] += 1
-            emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
+            id_emb = self.sess.run(self.id_embeddings, feed_dict={self.image_in: image, self.label_in: label})
             aff = []
             for idx in range(len(label)):
-                aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
+                aff.append(np.sum(np.square(id_emb[idx][:] - id_emb), 1))
             result = get_rank_k(aff, self.nof_images_per_id)
 
             print 'Time Elapsed %lf' % (time.time() - time_start)
 
             time_start = time.time()
-            print '[%d]selecting triplets' % triplet_select_times
-            triplet = triplet_sample(emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
+            print '[%d]selecting id triplets' % triplet_select_times
+            triplet = triplet_sample(id_emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
             nof_triplet = len(triplet)
 
             summary_op = tf.summary.merge_all()
-            print 'num of selected triplets:%d' % nof_triplet
+            print 'num of selected id triplets:%d' % nof_triplet
             print 'Time Elapsed:%lf' % (time.time() - time_start)
             inner_step = 0
             for i in xrange(0, nof_triplet, self.batch_size // 3):
@@ -147,7 +154,7 @@ class FaceQuartet():
                     triplet_image = np.reshape(triplet_image, [-1, 250, 250, 3])
                     triplet_label = np.reshape(triplet_label, [-1])
                     start_time = time.time()
-                    err, summary, _ = self.sess.run([self.loss, summary_op, self.opt],
+                    err, summary, _ = self.sess.run([self.id_loss, summary_op, self.id_opt],
                                                     feed_dict={self.image_in: triplet_image,
                                                                self.label_in: triplet_label,
                                                                self.affinity: np.reshape(np.array(aff), [-1,
@@ -169,69 +176,109 @@ class FaceQuartet():
                     step += 1
                     inner_step += 1
                     if inner_step % 5 == 0:
-                        emb = self.sess.run(self.embeddings, feed_dict={self.image_in: image, self.label_in: label})
+                        emb = self.sess.run(self.id_embeddings, feed_dict={self.image_in: image, self.label_in: label})
                         aff = []
                         for idx in range(len(label)):
                             aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
                         result = get_rank_k(aff, self.nof_images_per_id)
-                    if step % 200 == 0:
-                        # perform validate
-                        val_iters = CACD.val_size // 20
-                        true_label = []
-                        emb = []
-                        for _ in range(val_iters):
-                            validate_data, validate_label = CACD.get_test(20)
-                            validate_data = np.reshape(validate_data, [-1, 250, 250, 3])
-                            true_label.append(validate_label)
-                            emb_bacth = self.sess.run(self.embeddings, feed_dict={self.image_in: validate_data})
-                            emb.append(emb_bacth)
-                        true_label = np.reshape(true_label, (-1,))
-                        emb = np.reshape(emb, (-1, self.embedding_size))
-                        pre_label = []
-                        for j in range(CACD.val_size):
-                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 0.5:
-                                pre_label.append(1)
-                            else:
-                                pre_label.append(0)
-                        correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                        acc = float(correct) / CACD.val_size
-                        sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
-                        writer_train_1.add_summary(sum, step)
-
-                        pre_label = []
-                        for j in range(CACD.val_size):
-                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1:
-                                pre_label.append(1)
-                            else:
-                                pre_label.append(0)
-                        correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                        acc = float(correct) / CACD.val_size
-                        sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
-                        writer_train_2.add_summary(sum, step)
-
-                        pre_label = []
-                        for j in range(CACD.val_size):
-                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1.3:
-                                pre_label.append(1)
-                            else:
-                                pre_label.append(0)
-                        correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                        acc = float(correct) / CACD.val_size
-                        sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
-                        writer_train_3.add_summary(sum, step)
-
-                        pre_label = []
-                        for j in range(CACD.val_size):
-                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1.6:
-                                pre_label.append(1)
-                            else:
-                                pre_label.append(0)
-                        correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                        acc = float(correct) / CACD.val_size
-                        sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
-                        writer_train_4.add_summary(sum, step)
+                    # if step % 200 == 0:
+                    #     # perform validate
+                    #     val_iters = CACD.val_size // 20
+                    #     true_label = []
+                    #     emb = []
+                    #     for _ in range(val_iters):
+                    #         validate_data, validate_label = CACD.get_test(20)
+                    #         validate_data = np.reshape(validate_data, [-1, 250, 250, 3])
+                    #         true_label.append(validate_label)
+                    #         emb_bacth = self.sess.run(self.embeddings, feed_dict={self.image_in: validate_data})
+                    #         emb.append(emb_bacth)
+                    #     true_label = np.reshape(true_label, (-1,))
+                    #     emb = np.reshape(emb, (-1, self.embedding_size))
+                    #     pre_label = []
+                    #     for j in range(CACD.val_size):
+                    #         if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 0.5:
+                    #             pre_label.append(1)
+                    #         else:
+                    #             pre_label.append(0)
+                    #     correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
+                    #     acc = float(correct) / CACD.val_size
+                    #     sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
+                    #     writer_train_1.add_summary(sum, step)
+                    #
+                    #     pre_label = []
+                    #     for j in range(CACD.val_size):
+                    #         if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1:
+                    #             pre_label.append(1)
+                    #         else:
+                    #             pre_label.append(0)
+                    #     correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
+                    #     acc = float(correct) / CACD.val_size
+                    #     sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
+                    #     writer_train_2.add_summary(sum, step)
+                    #
+                    #     pre_label = []
+                    #     for j in range(CACD.val_size):
+                    #         if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1.3:
+                    #             pre_label.append(1)
+                    #         else:
+                    #             pre_label.append(0)
+                    #     correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
+                    #     acc = float(correct) / CACD.val_size
+                    #     sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
+                    #     writer_train_3.add_summary(sum, step)
+                    #
+                    #     pre_label = []
+                    #     for j in range(CACD.val_size):
+                    #         if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1.6:
+                    #             pre_label.append(1)
+                    #         else:
+                    #             pre_label.append(0)
+                    #     correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
+                    #     acc = float(correct) / CACD.val_size
+                    #     sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
+                    #     writer_train_4.add_summary(sum, step)
                     if step %10000 ==0:
-                        saver.save(self.sess,'DRFRModel',step)
+                        saver.save(self.sess,'QModel',step)
+
+            # AGE step
+            print '!!!!!!!!!AGE!!!!!!!!!!start forward propagation on a SAMPLE_BATCH (nof_sampled_age,nof_image_per_age)=(%d,%d)' % (
+                self.nof_sampled_age, self.nof_images_per_age)
+            time_start = time.time()
+            image, label, image_path, sampled_id = CACD.select_age(self.nof_sampled_age,
+                                                                        self.nof_images_per_age)
+
+            age_emb = self.sess.run(self.age_embeddings,
+                                   feed_dict={self.image_in: image, self.label_in: label})
+
+            print 'Time Elapsed %lf' % (time.time() - time_start)
+
+            time_start = time.time()
+            print '[%d]selecting id triplets' % triplet_select_times
+            triplet = triplet_sample(age_emb, self.nof_sampled_age, self.nof_images_per_age, self.delta)
+            nof_triplet = len(triplet)
+
+            summary_op = tf.summary.merge_all()
+            print 'num of selected id triplets:%d' % nof_triplet
+            print 'Time Elapsed:%lf' % (time.time() - time_start)
+            inner_step = 0
+            for i in xrange(0, nof_triplet, self.batch_size // 3):
+                if i + self.batch_size // 3 < nof_triplet:
+                    triplet_image, triplet_label = CACD.read_triplet(image_path, label, triplet, i,
+                                                                     self.batch_size // 3)
+                    triplet_image = np.reshape(triplet_image, [-1, 250, 250, 3])
+                    triplet_label = np.reshape(triplet_label, [-1])
+                    start_time = time.time()
+                    err, summary, _ = self.sess.run([self.age_loss, summary_op, self.age_opt],
+                                                    feed_dict={self.image_in: triplet_image,
+                                                               self.label_in: triplet_label,
+                                                               })
+                    print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
+                        inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
+                        time.time() - start_time)
+                    writer_train.add_summary(summary, step)
+                    step += 1
+                    if step % 10000 == 0:
+                        saver.save(self.sess, 'QModel', step)
             triplet_select_times += 1
 
 
@@ -296,8 +343,8 @@ if __name__ == '__main__':
     if not parse_arguments(sys.argv[1:]).workplace == 'sweet_home':
         gpu_config = tf.ConfigProto(allow_soft_placement=True)
         this_session = tf.Session(config=gpu_config)
-        model = FaceTriplet(this_session, config)
+        model = FaceQuartet(this_session, config)
     else:
         this_session = tf.Session()
-        model = FaceTriplet(this_session, config)
+        model = FaceQuartet(this_session, config)
     model.train()

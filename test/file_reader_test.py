@@ -13,9 +13,10 @@ class FileReaderTest(TestCase):
     cele1 = celebrity.Celebrity(CACD.age[0], CACD.identity[0], str(CACD.path[0]))
     print cele1.__str__()
     print CACD.__str__()
-    ages,idx = CACD.select_quartet(20,20)
+    _, label_data, image_path, ages =CACD.select_age(3,20)
     print ages
-    print idx
+    print image_path
+    print label_data
     # data = CACD.select_identity(2, 2)
     # sio.savemat('test.mat', {'data': data})
     #

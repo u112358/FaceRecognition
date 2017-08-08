@@ -63,13 +63,23 @@ class FileReader():
             images_indices = np.where(self.age==i)[0]
             print 'age:%d len:%d' % (i,len(images_indices))
             images_selected = random.sample(images_indices,nof_images)
+            for image in images_selected:
+                images_and_labels.append([image,i])
+        image_data = []
+        label_data = []
+        image_path = []
+        for image,label in images_and_labels:
+            image_data.append(self.read_jpeg_image(self.prefix+self.path[image][0].encode('utf-8')))
+            label_data.append(label)
+            image_path.append(self.prefix + self.path[image][0].encode('utf-8'))
+        return image_data, label_data, image_path, ages_selected
 
     def select_identity(self, nof_person, nof_images):
         images_and_labels = []
         # ids_selected \in [0,1999]
         ids_selected = random.sample(xrange(self.nof_identity), nof_person)
         for i in ids_selected:
-            # here we select id with 'i+1' as the cele.mat stores the identity label from idx 1
+            # here we select id with 'i+1' as the index of identity in cele.mat starts from 1
             images_indices = np.where(self.identity == i + 1)[0]
             print 'id:%d len:%d' % (i + 1, len(images_indices))
             images_selected = random.sample(images_indices, nof_images)
@@ -84,13 +94,13 @@ class FileReader():
             image_path.append(self.prefix + self.path[image][0].encode('utf-8'))
         return image_data, label_data, image_path, ids_selected
 
-    def select_quartet(self,nof_person, nof_images):
-        images_and_labels = []
-        ages = []
-        ids_selected = random.sample(xrange(self.nof_identity), nof_person)
-        for i in ids_selected:
-            ages.append(self.age[np.where(self.identity==i+1)[0]])
-        return ages
+    # def select_quartet(self,nof_person, nof_images):
+    #     images_and_labels = []
+    #     ages = []
+    #     ids_selected = random.sample(xrange(self.nof_identity), nof_person)
+    #     for i in ids_selected:
+    #         ages.append(self.age[np.where(self.identity==i+1)[0]])
+    #     return ages
 
 
     def read_triplet(self, image_path, label, triplet, i, len):
