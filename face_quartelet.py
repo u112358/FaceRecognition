@@ -253,11 +253,11 @@ class FaceQuartet():
             print 'Time Elapsed %lf' % (time.time() - time_start)
 
             time_start = time.time()
-            print '[%d]selecting id triplets' % triplet_select_times
+            print '[%d]selecting age triplets' % triplet_select_times
             triplet = triplet_sample(age_emb, self.nof_sampled_age, self.nof_images_per_age, self.delta)
             nof_triplet = len(triplet)
 
-            print 'num of selected id triplets:%d' % nof_triplet
+            print 'num of selected age triplets:%d' % nof_triplet
             print 'Time Elapsed:%lf' % (time.time() - time_start)
             inner_step = 0
             for i in xrange(0, nof_triplet, self.batch_size // 3):
@@ -270,7 +270,18 @@ class FaceQuartet():
                     err, summary, _ = self.sess.run([self.age_loss, summary_op, self.age_opt],
                                                     feed_dict={self.image_in: triplet_image,
                                                                self.label_in: triplet_label,
-                                                               })
+                                                               self.affinity: np.reshape(np.array(aff), [-1,
+                                                                                                         self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                         self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                         1]),
+                                                               self.possible_triplets: nof_triplet,
+                                                               self.val_acc: acc,
+                                                               self.result: np.reshape(result, [-1,
+                                                                                                self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                1]),
+                                                               self.sampled_freq: np.reshape(sampled_freq,
+                                                                                             [1, 50, 40, 1])})
                     print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
                         inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
                         time.time() - start_time)
