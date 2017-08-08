@@ -37,7 +37,7 @@ class FaceQuartet():
     def __init__(self, sess, config):
         self.sess = sess
         self.subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
-        self.log_dir = os.path.join(os.path.expanduser('logs\quartet'), self.subdir)
+        self.log_dir = os.path.join(os.path.expanduser('logs/quartet'), self.subdir)
         self.data_dir = config.data_dir
         self.model = config.model
         self.val_dir = config.val_dir
