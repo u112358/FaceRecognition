@@ -64,8 +64,8 @@ class FaceQuartet():
         self.val_acc = tf.placeholder(tf.float32, name='val_accuracy')
         self.sampled_freq = tf.placeholder(tf.float32, [1, 50, 40, 1], name='sampled_freq_image')
         self.id_embeddings, self.age_embeddings = self._forward()
-        self.id_loss = self._build_loss(self.id_embeddings)
-        self.age_loss = self._build_loss(self.age_embeddings)
+        self.id_loss = self._build_loss(self.id_embeddings,'id_loss')
+        self.age_loss = self._build_loss(self.age_embeddings,'age_loss')
         # self.loss = self.id_loss+self.age_loss
         self.id_opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(self.id_loss)
         self.age_opt = tf.train.AdamOptimizer(self.learning_rate,beta1=0.9,beta2=0.999,epsilon=0.1).minimize(self.age_loss)
@@ -85,14 +85,14 @@ class FaceQuartet():
         age_embeddings = tf.nn.l2_normalize(age_logits,dim=1,epsilon=1e-12,name='age_embeddings')
         return id_embeddings, age_embeddings
 
-    def _build_loss(self,embeddings):
+    def _build_loss(self,embeddings,name):
         anchor = embeddings[0:self.batch_size:3][:]
         pos = embeddings[1:self.batch_size:3][:]
         neg = embeddings[2:self.batch_size:3][:]
 
         total_loss = triplet_loss(anchor=anchor, positive=pos, negative=neg, delta=self.delta)
 
-        tf.summary.scalar('loss', total_loss)
+        tf.summary.scalar(name, total_loss)
         return total_loss
 
     # def _update_lr(self,lr):
@@ -122,6 +122,7 @@ class FaceQuartet():
         tf.summary.scalar('possible triplets', self.possible_triplets)
         tf.summary.image('sampled_freq', self.sampled_freq)
 
+        summary_op = tf.summary.merge_all()
         val_summary_op = tf.summary.scalar('val_acc', self.val_acc)
         while triplet_select_times < 19999:
             # ID step
@@ -143,7 +144,6 @@ class FaceQuartet():
             triplet = triplet_sample(id_emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
             nof_triplet = len(triplet)
 
-            summary_op = tf.summary.merge_all()
             print 'num of selected id triplets:%d' % nof_triplet
             print 'Time Elapsed:%lf' % (time.time() - time_start)
             inner_step = 0
@@ -257,7 +257,6 @@ class FaceQuartet():
             triplet = triplet_sample(age_emb, self.nof_sampled_age, self.nof_images_per_age, self.delta)
             nof_triplet = len(triplet)
 
-            summary_op = tf.summary.merge_all()
             print 'num of selected id triplets:%d' % nof_triplet
             print 'Time Elapsed:%lf' % (time.time() - time_start)
             inner_step = 0
