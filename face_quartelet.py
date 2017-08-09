@@ -110,10 +110,10 @@ class FaceQuartet():
                              val_list=self.val_list)
         triplet_select_times = 1
         writer_train = tf.summary.FileWriter(self.log_dir + '/train', self.sess.graph)
-        # writer_train_1 = tf.summary.FileWriter(self.log_dir + '/train/margin=0.5', self.sess.graph)
-        # writer_train_2 = tf.summary.FileWriter(self.log_dir + '/train/margin=1', self.sess.graph)
-        # writer_train_3 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.3', self.sess.graph)
-        # writer_train_4 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.6', self.sess.graph)
+        writer_train_1 = tf.summary.FileWriter(self.log_dir + '/train/margin=0.5', self.sess.graph)
+        writer_train_2 = tf.summary.FileWriter(self.log_dir + '/train/margin=1', self.sess.graph)
+        writer_train_3 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.3', self.sess.graph)
+        writer_train_4 = tf.summary.FileWriter(self.log_dir + '/train/margin=1.6', self.sess.graph)
         sampled_freq = np.zeros([2000, 1])
         acc = 0
         with tf.name_scope('ToCheck'):
@@ -181,62 +181,62 @@ class FaceQuartet():
                         for idx in range(len(label)):
                             aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
                         result = get_rank_k(aff, self.nof_images_per_id)
-                    # if step % 200 == 0:
-                    #     # perform validate
-                    #     val_iters = CACD.val_size // 20
-                    #     true_label = []
-                    #     emb = []
-                    #     for _ in range(val_iters):
-                    #         validate_data, validate_label = CACD.get_test(20)
-                    #         validate_data = np.reshape(validate_data, [-1, 250, 250, 3])
-                    #         true_label.append(validate_label)
-                    #         emb_bacth = self.sess.run(self.embeddings, feed_dict={self.image_in: validate_data})
-                    #         emb.append(emb_bacth)
-                    #     true_label = np.reshape(true_label, (-1,))
-                    #     emb = np.reshape(emb, (-1, self.embedding_size))
-                    #     pre_label = []
-                    #     for j in range(CACD.val_size):
-                    #         if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 0.5:
-                    #             pre_label.append(1)
-                    #         else:
-                    #             pre_label.append(0)
-                    #     correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                    #     acc = float(correct) / CACD.val_size
-                    #     sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
-                    #     writer_train_1.add_summary(sum, step)
-                    #
-                    #     pre_label = []
-                    #     for j in range(CACD.val_size):
-                    #         if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1:
-                    #             pre_label.append(1)
-                    #         else:
-                    #             pre_label.append(0)
-                    #     correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                    #     acc = float(correct) / CACD.val_size
-                    #     sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
-                    #     writer_train_2.add_summary(sum, step)
-                    #
-                    #     pre_label = []
-                    #     for j in range(CACD.val_size):
-                    #         if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1.3:
-                    #             pre_label.append(1)
-                    #         else:
-                    #             pre_label.append(0)
-                    #     correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                    #     acc = float(correct) / CACD.val_size
-                    #     sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
-                    #     writer_train_3.add_summary(sum, step)
-                    #
-                    #     pre_label = []
-                    #     for j in range(CACD.val_size):
-                    #         if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1.6:
-                    #             pre_label.append(1)
-                    #         else:
-                    #             pre_label.append(0)
-                    #     correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                    #     acc = float(correct) / CACD.val_size
-                    #     sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
-                    #     writer_train_4.add_summary(sum, step)
+                    if step % 200 == 0:
+                        # perform validate
+                        val_iters = CACD.val_size // 20
+                        true_label = []
+                        emb = []
+                        for _ in range(val_iters):
+                            validate_data, validate_label = CACD.get_test(20)
+                            validate_data = np.reshape(validate_data, [-1, 250, 250, 3])
+                            true_label.append(validate_label)
+                            emb_bacth = self.sess.run(self.embeddings, feed_dict={self.image_in: validate_data})
+                            emb.append(emb_bacth)
+                        true_label = np.reshape(true_label, (-1,))
+                        emb = np.reshape(emb, (-1, self.embedding_size))
+                        pre_label = []
+                        for j in range(CACD.val_size):
+                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 0.5:
+                                pre_label.append(1)
+                            else:
+                                pre_label.append(0)
+                        correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
+                        acc = float(correct) / CACD.val_size
+                        sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
+                        writer_train_1.add_summary(sum, step)
+
+                        pre_label = []
+                        for j in range(CACD.val_size):
+                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1:
+                                pre_label.append(1)
+                            else:
+                                pre_label.append(0)
+                        correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
+                        acc = float(correct) / CACD.val_size
+                        sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
+                        writer_train_2.add_summary(sum, step)
+
+                        pre_label = []
+                        for j in range(CACD.val_size):
+                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1.3:
+                                pre_label.append(1)
+                            else:
+                                pre_label.append(0)
+                        correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
+                        acc = float(correct) / CACD.val_size
+                        sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
+                        writer_train_3.add_summary(sum, step)
+
+                        pre_label = []
+                        for j in range(CACD.val_size):
+                            if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 1.6:
+                                pre_label.append(1)
+                            else:
+                                pre_label.append(0)
+                        correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
+                        acc = float(correct) / CACD.val_size
+                        sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
+                        writer_train_4.add_summary(sum, step)
                     if step %10000 ==0:
                         saver.save(self.sess,'QModel',step)
 
@@ -285,6 +285,7 @@ class FaceQuartet():
                     print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
                         inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
                         time.time() - start_time)
+                    inner_step+=1
                     writer_train.add_summary(summary, step)
                     step += 1
                     if step % 10000 == 0:
