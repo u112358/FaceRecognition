@@ -190,10 +190,10 @@ class FaceQuartet():
                             validate_data, validate_label = CACD.get_test(20)
                             validate_data = np.reshape(validate_data, [-1, 250, 250, 3])
                             true_label.append(validate_label)
-                            emb_bacth = self.sess.run(self.embeddings, feed_dict={self.image_in: validate_data})
+                            emb_bacth = self.sess.run(self.id_embeddings, feed_dict={self.image_in: validate_data})
                             emb.append(emb_bacth)
                         true_label = np.reshape(true_label, (-1,))
-                        emb = np.reshape(emb, (-1, self.embedding_size))
+                        emb = np.reshape(emb, (-1, 128))
                         pre_label = []
                         for j in range(CACD.val_size):
                             if np.sum(np.square(emb[j * 2] - emb[j * 2 + 1])) < 0.5:
