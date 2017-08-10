@@ -37,13 +37,13 @@ class Configurer():
             self.data_dir = '/home/bingzhang/Documents/Dataset/CACD/CACD2000/'
             self.model = '/home/bingzhang/Workspace/PycharmProjects/model/20170529-141612-52288'
             self.val_dir = '/home/bingzhang/Documents/Dataset/lfw/'
-            self.val_list = '/home/bingzhang/Documents/Dataset/ZID/LFW/lfw_trip_val.txt'
+            self.val_list = '/home/bingzhang/Documents/Dataset/ZID/LFW/lfw_val_list.txt'
         elif workplace=='server':
             self.data_dir = '/scratch/BingZhang/dataset/CACD2000/'
             #self.model= '/scratch/BingZhang/FaceRecognition.close/models/20170529-141612-52288'
             self.model = '/scratch/BingZhang/FaceRecognition/DRFRModel-90000'
             self.val_dir = '/scratch/BingZhang/lfw/'
-            self.val_list = '/scratch/BingZhang/lfw/lfw_trip_val.txt'
+            self.val_list = '/scratch/BingZhang/lfw/lfw_val_list.txt'
         elif workplace=='sweet_home':
             self.data_dir = '/Users/bingzhang/Documents/Dataset/CACD2000/'
             self.model ='/Users/bingzhang/Documents/Dataset/model/20170529-141612-52288'
@@ -53,7 +53,7 @@ class Configurer():
             self.data_dir = '/scratch/BingZhang/dataset/CACD2000/'
             self.model = '/scratch/BingZhang/FaceRecognition.close/models/20170529-141612-52288'
             self.val_dir = '/scratch/BingZhang/lfw/'
-            self.val_list = '/scratch/BingZhang/lfw/lfw_trip_val.txt'
+            self.val_list = '/scratch/BingZhang/lfw/lfw_val_list.txt'
 
 
 
