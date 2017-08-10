@@ -201,7 +201,7 @@ class FaceQuartet():
                             else:
                                 pre_label.append(0)
                         correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                        acc = float(correct) / CACD.val_size
+                        acc = 1-float(correct) / CACD.val_size
                         sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
                         writer_train_1.add_summary(sum, step)
 
@@ -212,7 +212,7 @@ class FaceQuartet():
                             else:
                                 pre_label.append(0)
                         correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                        acc = float(correct) / CACD.val_size
+                        acc = 1-float(correct) / CACD.val_size
                         sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
                         writer_train_2.add_summary(sum, step)
 
@@ -223,7 +223,7 @@ class FaceQuartet():
                             else:
                                 pre_label.append(0)
                         correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                        acc = float(correct) / CACD.val_size
+                        acc = 1-float(correct) / CACD.val_size
                         sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
                         writer_train_3.add_summary(sum, step)
 
@@ -234,7 +234,7 @@ class FaceQuartet():
                             else:
                                 pre_label.append(0)
                         correct = np.sum(abs(np.array(pre_label) - np.array(true_label)))
-                        acc = float(correct) / CACD.val_size
+                        acc = 1-float(correct) / CACD.val_size
                         sum = self.sess.run(val_summary_op, feed_dict={self.val_acc: acc})
                         writer_train_4.add_summary(sum, step)
                     if step %10000 ==0:
