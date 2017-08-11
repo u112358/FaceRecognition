@@ -44,7 +44,7 @@ class DualReferenceFR():
         self.feature_dim = 2000
         self.embedding_size = 128
         self.max_epoch = 20
-        self.delta = 0.25  # delta in hinge loss
+        self.delta = 0.05  # delta in hinge loss
         self.nof_sampled_id = 20
         self.nof_images_per_id = 20
         self.nof_sampled_age = 20
