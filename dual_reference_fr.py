@@ -39,12 +39,12 @@ class DualReferenceFR():
         self.paths = env_config
 
         """training parameters"""
-        self.learning_rate = 0.008
+        self.learning_rate = 0.0008
         self.batch_size = 30
         self.feature_dim = 2000
         self.embedding_size = 128
         self.max_epoch = 20
-        self.delta = 0.05  # delta in hinge loss
+        self.delta = 0.1  # delta in hinge loss
         self.nof_sampled_id = 20
         self.nof_images_per_id = 20
         self.nof_sampled_age = 20
@@ -55,6 +55,12 @@ class DualReferenceFR():
         self.label_in = tf.placeholder(tf.float32, [None], name='label_in')
         self.val_acc = tf.placeholder(tf.float32, name='val_acc')
         self.dis_check = tf.placeholder(tf.float32, [None, 10, 20, 1])
+        # confusion matrix to display in tensorboard
+        self.affinity = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
+                                                    self.nof_images_per_id * self.nof_sampled_id, 1])
+        # binariesed confusion matrix
+        self.result = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
+                                                  self.nof_images_per_id * self.nof_sampled_id, 1])
         """model nodes and ops"""
         self.feature = self.net_forward()
         self.id_embeddings = self.get_id_embeddings(self.feature)
@@ -121,8 +127,11 @@ class DualReferenceFR():
         writer_train = tf.summary.FileWriter(self.paths.log_dir, self.sess.graph)
         CACD = fr.FileReader(self.paths.data_dir, 'cele.mat', contain_val=True, val_data_dir=self.paths.val_dir,
                              val_list=self.paths.val_list)
-        tf.summary.image('input', self.image_in, 10)
-        tf.summary.image('dis', self.dis_check, 1)
+        fp = open('dis.txt','a')
+        with tf.name_scope('ToCheck'):
+            tf.summary.image('affinity', self.affinity, 1)
+            tf.summary.image('result', self.result)
+            tf.summary.image('dis', self.dis_check, 1)
         tf.summary.scalar('id_loss', self.id_loss)
         dis = np.zeros(200)
         summary_op = tf.summary.merge_all()
@@ -134,6 +143,10 @@ class DualReferenceFR():
             time_start = time.time()
             image, label, image_path, sampled_id = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
             id_emb = self.sess.run(self.id_embeddings, feed_dict={self.image_in: image, self.label_in: label})
+            aff = []
+            for idx in range(len(label)):
+                aff.append(np.sum(np.square(id_emb[idx][:] - id_emb), 1))
+            result = get_rank_k(aff, self.nof_images_per_id)
             print 'Time Elapsed %lf' % (time.time() - time_start)
             time_start = time.time()
             print '[%d]selecting id triplets' % triplet_select_times
@@ -154,14 +167,31 @@ class DualReferenceFR():
                                                     feed_dict={self.image_in: triplet_image,
                                                                self.label_in: triplet_label,
                                                                self.dis_check: np.reshape(np.array(dis),
-                                                                                          [-1, 10, 20, 1])})
+                                                                                          [-1, 10, 20, 1]),
+                                                               self.affinity: np.reshape(np.array(aff), [-1,
+                                                                                                         self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                         self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                         1]),
+                                                               self.result: np.reshape(result, [-1,
+                                                                                                self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                self.nof_images_per_id * self.nof_sampled_id,
+                                                                                                1]),
+                                                               })
                     print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
                         inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
                         time.time() - start_time)
                     writer_train.add_summary(summary, step)
                     step += 1
                     inner_step += 1
-                    if step % 100 == 0:
+
+                    if inner_step % 5 == 0:
+                        emb = self.sess.run(self.id_embeddings, feed_dict={self.image_in: image, self.label_in: label})
+                        aff = []
+                        for idx in range(len(label)):
+                            aff.append(np.sum(np.square(emb[idx][:] - emb), 1))
+                        result = get_rank_k(aff, self.nof_images_per_id)
+
+                    if step % 200 == 0:
                         val_iters = CACD.val_size // 20
                         ground_truth = []
                         emb = []
@@ -176,7 +206,10 @@ class DualReferenceFR():
                         emb = np.reshape(emb, (-1, 128))
                         for j in range(CACD.val_size):
                             dis[j] = np.sum(np.square(emb[j * 2] - emb[j * 2 + 1]))
-                    if step % 500 == 0:
+                        for item in dis:
+                            fp.write(str(item)+' ')
+                        fp.write('\n')
+                    if step % 2000 == 0:
                         saver.save(self.sess, 'DRModel', step)
             triplet_select_times += 1
 
@@ -192,7 +225,7 @@ def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
             neg_dist[anchor_id:(anchor_id // nof_images_per_id + 1) * nof_images_per_id] = np.NAN
             neg_ids = np.where(neg_dist - dist[pos_id] < delta)[0]
             nof_neg_ids = len(neg_ids)
-            if nof_neg_ids > 0:
+            if nof_neg_ids > 10:
                 rand_id = np.random.randint(nof_neg_ids)
                 neg_id = neg_ids[rand_id]
                 triplet.append([anchor_id, pos_id, neg_id])

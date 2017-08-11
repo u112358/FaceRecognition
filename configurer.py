@@ -40,7 +40,7 @@ class Configurer():
             self.data_dir = '/home/bingzhang/Documents/Dataset/CACD/CACD2000/'
             self.model = '/home/bingzhang/Workspace/PycharmProjects/model/20170529-141612-52288'
             self.val_dir = '/home/bingzhang/Documents/Dataset/lfw/'
-            self.val_list = '/home/bingzhang/Documents/Dataset/ZID/LFW/lfw_val_list.txt'
+            self.val_list = '/home/bingzhang/Documents/Dataset/ZID/LFW/val.list'
         elif workplace=='server':
             self.data_dir = '/scratch/BingZhang/dataset/CACD2000/'
             #self.model= '/scratch/BingZhang/FaceRecognition.close/models/20170529-141612-52288'
