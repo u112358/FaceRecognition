@@ -39,7 +39,7 @@ class DualReferenceFR():
         self.paths = env_config
 
         """training parameters"""
-        self.learning_rate = 0.0008
+        self.learning_rate = 0.005
         self.batch_size = 30
         self.feature_dim = 2000
         self.embedding_size = 128
@@ -208,6 +208,7 @@ class DualReferenceFR():
                             dis[j] = np.sum(np.square(emb[j * 2] - emb[j * 2 + 1]))
                         for item in dis:
                             fp.write(str(item)+' ')
+                            print item
                         fp.write('\n')
                     if step % 2000 == 0:
                         saver.save(self.sess, 'DRModel', step)
