@@ -54,7 +54,7 @@ class DualReferenceFR():
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3], name='image_in')
         self.label_in = tf.placeholder(tf.float32, [None], name='label_in')
         self.val_acc = tf.placeholder(tf.float32, name='val_acc')
-        self.dis_check = tf.placeholder(tf.float32, [None, 1, 200, 1])
+        self.dis_check = tf.placeholder(tf.float32, [None, 10, 20, 1])
         """model nodes and ops"""
         self.feature = self.net_forward()
         self.id_embeddings = self.get_id_embeddings(self.feature)
@@ -154,14 +154,14 @@ class DualReferenceFR():
                                                     feed_dict={self.image_in: triplet_image,
                                                                self.label_in: triplet_label,
                                                                self.dis_check: np.reshape(np.array(dis),
-                                                                                          [-1, 1, 200, 1])})
+                                                                                          [-1, 10, 20, 1])})
                     print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
                         inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
                         time.time() - start_time)
                     writer_train.add_summary(summary, step)
                     step += 1
                     inner_step += 1
-                    if step % 20 == 0:
+                    if step % 100 == 0:
                         val_iters = CACD.val_size // 20
                         ground_truth = []
                         emb = []
@@ -176,8 +176,8 @@ class DualReferenceFR():
                         emb = np.reshape(emb, (-1, 128))
                         for j in range(CACD.val_size):
                             dis[j] = np.sum(np.square(emb[j * 2] - emb[j * 2 + 1]))
-                    if step % 10000 == 0:
-                        saver.save(self.sess, 'QModel', step)
+                    if step % 500 == 0:
+                        saver.save(self.sess, 'DRModel', step)
             triplet_select_times += 1
 
 
