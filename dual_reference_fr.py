@@ -54,7 +54,7 @@ class DualReferenceFR():
         self.image_in = tf.placeholder(tf.float32, [None, 250, 250, 3], name='image_in')
         self.label_in = tf.placeholder(tf.float32, [None], name='label_in')
         self.val_acc = tf.placeholder(tf.float32, name='val_acc')
-
+        self.dis_check = tf.placeholder(tf.float32, [None, 20,10 , 1])
         """model nodes and ops"""
         self.feature = self.net_forward()
         self.id_embeddings = self.get_id_embeddings(self.feature)
@@ -122,6 +122,8 @@ class DualReferenceFR():
         CACD = fr.FileReader(self.paths.data_dir, 'cele.mat', contain_val=True, val_data_dir=self.paths.val_dir,
                              val_list=self.paths.val_list)
         tf.summary.image('input',self.image_in,10)
+        tf.summary.image('dis',self.dis_check,1)
+        dis = np.zeros(200)
         summary_op  = tf.summary.merge_all()
         triplet_select_times = 1
         while triplet_select_times < 19999:
@@ -149,12 +151,28 @@ class DualReferenceFR():
                     start_time = time.time()
                     err, summary, _ = self.sess.run([self.id_loss, summary_op, self.id_opt],
                                                     feed_dict={self.image_in: triplet_image,
-                                                               self.label_in: triplet_label})
+                                                               self.label_in: triplet_label,
+                                                               self.dis_check:np.reshape(np.array(dis),[-1,20,10,1])})
                     print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
                         inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
                         time.time() - start_time)
                     writer_train.add_summary(summary, step)
                     step += 1
+                    if step%100==0:
+                        val_iters = CACD.val_size//20
+                        ground_truth = []
+                        emb = []
+                        # extract embeddings by batch as GPU memory is not enough
+                        for _ in range(val_iters):
+                            val_data,val_label = CACD.get_test(20)
+                            val_data = np.reshape(val_data,[-1,250,250,3])
+                            ground_truth.append(val_label)
+                            emb_batch = self.sess.run(self.id_embeddings,feed_dict={self.image_in:val_data})
+                            emb.append(emb_batch)
+                        ground_truth = np.reshape(ground_truth,(-1,))
+                        emb = np.reshape(emb,(-1,128))
+                        for j in range(CACD.val_size):
+                            dis[j] = np.sum(np.square(emb[j * 2] - emb[j * 2 + 1]))
                     if step %10000 ==0:
                         saver.save(self.sess,'QModel',step)
             triplet_select_times+=1
