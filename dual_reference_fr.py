@@ -82,6 +82,10 @@ class DualReferenceFR():
             id_embeddings = slim.fully_connected(feature, self.embedding_size, activation_fn=None,
                                                  weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
                                                  weights_regularizer=slim.l2_regularizer(0.0),scope='id_embedding')
+            weights = slim.get_model_variables('id_embedding')[0]
+            bias = slim.get_model_variables('id_embedding')[1]
+            nb.variable_summaries(weights, 'weight')
+            nb.variable_summaries(bias, 'bias')
             id_embeddings = tf.nn.l2_normalize(id_embeddings, dim=1, epsilon=1e-12, name='id_embeddings')
         return id_embeddings
 
@@ -92,8 +96,8 @@ class DualReferenceFR():
                                                   weights_regularizer=slim.l2_regularizer(0.0),scope='age_embedding')
             weights = slim.get_model_variables('age_embedding')[0]
             bias = slim.get_model_variables('age_embedding')[1]
-            nb.variable_summaries(weights,'age_embedding_weight')
-            nb.variable_summaries(bias,'age_embedding_bias')
+            nb.variable_summaries(weights,'weight')
+            nb.variable_summaries(bias,'bias')
             # tf.summary.scalar('age_embedding',slim.get_model_variables('age_embedding'))
             id_embeddings = tf.nn.l2_normalize(age_embeddings, dim=1, epsilon=1e-12, name='age_embeddings')
         return id_embeddings
