@@ -46,7 +46,7 @@ class Configurer():
             #self.model= '/scratch/BingZhang/FaceRecognition.close/models/20170529-141612-52288'
             self.model = '/scratch/BingZhang/FaceRecognition/DRFRModel-90000'
             self.val_dir = '/scratch/BingZhang/lfw/'
-            self.val_list = '/scratch/BingZhang/val.list'
+            self.val_list = '/scratch/BingZhang/FaceRecognition/val.list'
         elif workplace=='sweet_home':
             self.data_dir = '/Users/bingzhang/Documents/Dataset/CACD2000/'
             self.model ='/Users/bingzhang/Documents/Dataset/model/20170529-141612-52288'
@@ -56,7 +56,7 @@ class Configurer():
             self.data_dir = '/scratch/BingZhang/dataset/CACD2000/'
             self.model = '/scratch/BingZhang/FaceRecognition.close/models/20170529-141612-52288'
             self.val_dir = '/scratch/BingZhang/lfw/'
-            self.val_list = '/scratch/BingZhang/val.list'
+            self.val_list = '/scratch/BingZhang/FaceRecognition/val.list'
 
 
 
