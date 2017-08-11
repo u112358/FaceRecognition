@@ -20,7 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
+from datetime import datetime
+import os
 class Configurer():
     """Summary of class here.
 
@@ -33,6 +34,8 @@ class Configurer():
     """
     def __init__(self, workplace):
         """Inits SampleClass with blah."""
+        subdir = datetime.strftime(datetime.now(),'%Y%m%d-%H%M%S')
+        self.log_dir = os.path.join('./log',subdir)
         if workplace =='lab':
             self.data_dir = '/home/bingzhang/Documents/Dataset/CACD/CACD2000/'
             self.model = '/home/bingzhang/Workspace/PycharmProjects/model/20170529-141612-52288'
@@ -43,7 +46,7 @@ class Configurer():
             #self.model= '/scratch/BingZhang/FaceRecognition.close/models/20170529-141612-52288'
             self.model = '/scratch/BingZhang/FaceRecognition/DRFRModel-90000'
             self.val_dir = '/scratch/BingZhang/lfw/'
-            self.val_list = '/scratch/BingZhang/lfw/lfw_val_list.txt'
+            self.val_list = '/scratch/BingZhang/lfw/val.list'
         elif workplace=='sweet_home':
             self.data_dir = '/Users/bingzhang/Documents/Dataset/CACD2000/'
             self.model ='/Users/bingzhang/Documents/Dataset/model/20170529-141612-52288'
@@ -53,7 +56,7 @@ class Configurer():
             self.data_dir = '/scratch/BingZhang/dataset/CACD2000/'
             self.model = '/scratch/BingZhang/FaceRecognition.close/models/20170529-141612-52288'
             self.val_dir = '/scratch/BingZhang/lfw/'
-            self.val_list = '/scratch/BingZhang/lfw/lfw_val_list.txt'
+            self.val_list = '/scratch/BingZhang/lfw/val.list'
 
 
 
