@@ -67,7 +67,7 @@ class DualReferenceFR():
         self.age_embeddings = self.get_age_embeddings(self.feature)
         self.id_loss = self.get_triplet_loss(self.id_embeddings)
         self.age_loss = self.get_triplet_loss(self.age_embeddings)
-        self.reg_loss = tf.losses.get_regularization_losses()
+        self.reg_loss = tf.losses.get_regularization_losses()[0]+tf.losses.get_regularization_losses()[1]
         tf.summary.scalar('reg_loss',self.reg_loss)
         self.id_opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(
             self.id_loss+self.reg_loss)
@@ -140,8 +140,8 @@ class DualReferenceFR():
         triplet_select_times = 1
         while triplet_select_times < 19999:
             # ID step
-            print '!!!!!!!!!ID!!!!!!!!!!start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
-                self.nof_sampled_id, self.nof_images_per_id)
+            print('!!!!!!!!!ID!!!!!!!!!!start forward propagation on a SAMPLE_BATCH (nof_sampled_id,nof_image_per_id)=(%d,%d)' % (
+                self.nof_sampled_id, self.nof_images_per_id))
             time_start = time.time()
             image, label, image_path, sampled_id = CACD.select_identity(self.nof_sampled_id, self.nof_images_per_id)
             id_emb = self.sess.run(self.id_embeddings, feed_dict={self.image_in: image, self.label_in: label})
@@ -149,14 +149,14 @@ class DualReferenceFR():
             for idx in range(len(label)):
                 aff.append(np.sum(np.square(id_emb[idx][:] - id_emb), 1))
             result = get_rank_k(aff, self.nof_images_per_id)
-            print 'Time Elapsed %lf' % (time.time() - time_start)
+            print('Time Elapsed %lf' % (time.time() - time_start))
             time_start = time.time()
-            print '[%d]selecting id triplets' % triplet_select_times
+            print('[%d]selecting id triplets' % triplet_select_times)
             triplet = triplet_sample(id_emb, self.nof_sampled_id, self.nof_images_per_id, self.delta)
             nof_triplet = len(triplet)
 
-            print 'num of selected id triplets:%d' % nof_triplet
-            print 'Time Elapsed:%lf' % (time.time() - time_start)
+            print('num of selected id triplets:%d' % nof_triplet)
+            print('Time Elapsed:%lf' % (time.time() - time_start))
             inner_step = 0
             for i in xrange(0, nof_triplet, self.batch_size // 3):
                 if i + self.batch_size // 3 < nof_triplet:
@@ -179,9 +179,9 @@ class DualReferenceFR():
                                                                                                 self.nof_images_per_id * self.nof_sampled_id,
                                                                                                 1]),
                                                                })
-                    print '[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
+                    print('[%d/%d@%dth select_triplet & global_step %d] \033[1;31;40m loss:[%lf] \033[1;m time elapsed:%lf' % (
                         inner_step, (nof_triplet * 3) // self.batch_size, triplet_select_times, step, err,
-                        time.time() - start_time)
+                        time.time() - start_time))
                     writer_train.add_summary(summary, step)
                     step += 1
                     inner_step += 1
@@ -210,7 +210,7 @@ class DualReferenceFR():
                             dis[j] = np.sum(np.square(emb[j * 2] - emb[j * 2 + 1]))
                         for item in dis:
                             fp.write(str(item)+' ')
-                            print item
+                            print(item)
                         fp.write('\n')
                     if step % 2000 == 0:
                         saver.save(self.sess, 'DRModel', step)

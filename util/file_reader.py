@@ -60,7 +60,7 @@ class FileReader():
         ages_selected = random.sample(range(14,63),nof_age)
         for i in ages_selected:
             images_indices = np.where(self.age==i)[0]
-            print 'age:%d len:%d' % (i,len(images_indices))
+            # print('age:%d len:%d' % (i,len(images_indices)))
             images_selected = random.sample(images_indices,nof_images)
             for image in images_selected:
                 images_and_labels.append([image,i])
@@ -80,7 +80,7 @@ class FileReader():
         for i in ids_selected:
             # here we select id with 'i+1' as the index of identity in cele.mat starts from 1
             images_indices = np.where(self.identity == i + 1)[0]
-            print 'id:%d len:%d' % (i + 1, len(images_indices))
+            # print('id:%d len:%d' % (i + 1, len(images_indices)))
             images_selected = random.sample(images_indices, nof_images)
             for image in images_selected:
                 images_and_labels.append([image, i])
