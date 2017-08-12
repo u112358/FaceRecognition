@@ -67,10 +67,11 @@ class DualReferenceFR():
         self.age_embeddings = self.get_age_embeddings(self.feature)
         self.id_loss = self.get_triplet_loss(self.id_embeddings)
         self.age_loss = self.get_triplet_loss(self.age_embeddings)
+        self.reg_loss = slim.losses.get_regularization_losses()
         self.id_opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(
-            self.id_loss)
+            self.id_loss+self.reg_loss)
         self.age_opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(
-            self.age_loss)
+            self.age_loss+self.reg_loss)
 
         gpu_config = tf.ConfigProto(allow_soft_placement=True)
         self.sess = tf.Session(config=gpu_config)
@@ -87,7 +88,7 @@ class DualReferenceFR():
         with tf.variable_scope('id_embedding'):
             id_embeddings = slim.fully_connected(feature, self.embedding_size, activation_fn=None,
                                                  weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
-                                                 weights_regularizer=slim.l2_regularizer(0.0), scope='id_embedding')
+                                                 weights_regularizer=slim.l2_regularizer(0.01), scope='id_embedding')
             weights = slim.get_model_variables('id_embedding')[0]
             bias = slim.get_model_variables('id_embedding')[1]
             nb.variable_summaries(weights, 'weight')
@@ -99,7 +100,7 @@ class DualReferenceFR():
         with tf.variable_scope('age_embedding'):
             age_embeddings = slim.fully_connected(feature, self.embedding_size, activation_fn=None,
                                                   weights_initializer=tf.truncated_normal_initializer(stddev=0.1),
-                                                  weights_regularizer=slim.l2_regularizer(0.0), scope='age_embedding')
+                                                  weights_regularizer=slim.l2_regularizer(0.01), scope='age_embedding')
             weights = slim.get_model_variables('age_embedding')[0]
             bias = slim.get_model_variables('age_embedding')[1]
             nb.variable_summaries(weights, 'weight')
