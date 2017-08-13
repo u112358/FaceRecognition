@@ -45,8 +45,8 @@ class DualReferenceFR():
         self.embedding_size = 128
         self.max_epoch = 20
         self.delta = 0.1  # delta in hinge loss
-        self.nof_sampled_id = 20
-        self.nof_images_per_id = 20
+        self.nof_sampled_id = 60
+        self.nof_images_per_id = 10
         self.nof_sampled_age = 20
         self.nof_images_per_age = 20
 
@@ -61,6 +61,7 @@ class DualReferenceFR():
         # binariesed confusion matrix
         self.result = tf.placeholder(tf.float32, [None, self.nof_images_per_id * self.nof_sampled_id,
                                                   self.nof_images_per_id * self.nof_sampled_id, 1])
+        self.possible_triplets = tf.placeholder(tf.int16, name='nof_possible_triplets')
         """model nodes and ops"""
         self.feature = self.net_forward()
         self.id_embeddings = self.get_id_embeddings(self.feature)
@@ -135,6 +136,7 @@ class DualReferenceFR():
             tf.summary.image('result', self.result)
             tf.summary.image('dis', self.dis_check, 1)
         tf.summary.scalar('id_loss', self.id_loss)
+        tf.summary.scalar('possile_triples',self.possible_triplets)
         dis = np.zeros(200)
         summary_op = tf.summary.merge_all()
         triplet_select_times = 1
@@ -170,6 +172,7 @@ class DualReferenceFR():
                                                                self.label_in: triplet_label,
                                                                self.dis_check: np.reshape(np.array(dis),
                                                                                           [-1, 10, 20, 1]),
+                                                               self.possible_triplets: nof_triplet,
                                                                self.affinity: np.reshape(np.array(aff), [-1,
                                                                                                          self.nof_images_per_id * self.nof_sampled_id,
                                                                                                          self.nof_images_per_id * self.nof_sampled_id,
