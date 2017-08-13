@@ -68,7 +68,7 @@ class DualReferenceFR():
         self.age_embeddings = self.get_age_embeddings(self.feature)
         self.id_loss = self.get_triplet_loss(self.id_embeddings)
         self.age_loss = self.get_triplet_loss(self.age_embeddings)
-        self.reg_loss = 0.001*(tf.losses.get_regularization_losses()[0]+tf.losses.get_regularization_losses()[1])
+        self.reg_loss = 0.01*(tf.losses.get_regularization_losses()[0]+tf.losses.get_regularization_losses()[1])
         tf.summary.scalar('reg_loss',self.reg_loss)
         self.id_opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1).minimize(
             self.id_loss+self.reg_loss)
