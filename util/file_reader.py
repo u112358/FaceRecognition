@@ -130,7 +130,7 @@ class FileReader():
                 img_data.append(self.read_jpeg_image(path))
                 label.append(self.index_list[self.current_index])
                 self.current_index+=1
-        return img_data
+        return img_data,label
 
 
     def get_test(self, n):
