@@ -31,7 +31,7 @@ import tensorflow.contrib.slim as slim
 import argparse
 import sys
 import configurer
-
+import scipy.io as sio
 
 class DualReferenceFR():
     def __init__(self, env_config):
@@ -219,6 +219,21 @@ class DualReferenceFR():
                         saver.save(self.sess, 'DRModel', step)
             triplet_select_times += 1
 
+    def extract_feature(self):
+        self.sess.run(tf.global_variables_initializer())
+        step = 0
+        saver = tf.train.Saver()
+        saver.restore(self.sess,'./DRModel-76000')
+        feature = []
+        CACD = fr.FileReader(self.paths.data_dir, 'cele.mat', contain_val=True, val_data_dir=self.paths.val_dir,
+                             val_list=self.paths.val_list)
+        for i in xrange(0,CACD.total_images//self.batch_size):
+            data = CACD.get_next_batch(self.batch_size)
+            feature_tmp = self.sess.run(self.id_embeddings,feed_dict={self.image_in:data})
+            feature.append(feature_tmp)
+            print('processing %d/%d batch',i,CACD.total_images//self.batch_size)
+        sio.savemat('f.mat',{'feature':feature})
+
 
 def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):
     aff = []
@@ -258,4 +273,4 @@ def get_rank_k(aff, k):
 if __name__ == '__main__':
     config = configurer.Configurer(parse_arguments(sys.argv[1:]).workplace)
     model = DualReferenceFR(config)
-    model.train()
+    model.extract_feature()

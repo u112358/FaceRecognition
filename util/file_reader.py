@@ -39,6 +39,12 @@ class FileReader():
         self.nof_images_at_identity = np.zeros([self.nof_identity, 1])
         for i in self.identity:
             self.nof_images_at_identity[i - 1] += 1
+
+
+        self.total_images = len(self.age)
+        self.index_list = list(range(self.total_images))
+        np.random.shuffle(self.index_list)
+        self.current_index = 0
         self.val_data_dir = val_data_dir
         self.val_img_pair = []
         self.val_label = []
@@ -115,7 +121,14 @@ class FileReader():
 
 
 
-
+    def get_next_batch(self,batch_size):
+        img_data = []
+        for i in range(batch_size):
+            if self.current_index<self.total_images:
+                path = self.prefix+self.path[self.index_list[self.current_index]][0]
+                img_data.append(self.read_jpeg_image(path))
+                self.current_index+=1
+        return img_data
 
 
     def get_test(self, n):
