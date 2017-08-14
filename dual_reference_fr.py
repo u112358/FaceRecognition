@@ -225,14 +225,16 @@ class DualReferenceFR():
         saver = tf.train.Saver()
         saver.restore(self.sess,'./DRModel-76000')
         feature = []
+        idx = []
         CACD = fr.FileReader(self.paths.data_dir, 'cele.mat', contain_val=True, val_data_dir=self.paths.val_dir,
                              val_list=self.paths.val_list)
         for i in xrange(0,CACD.total_images//self.batch_size):
-            data = CACD.get_next_batch(self.batch_size)
+            data,label = CACD.get_next_batch(self.batch_size)
+            idx.append(label)
             feature_tmp = self.sess.run(self.id_embeddings,feed_dict={self.image_in:data})
             feature.append(feature_tmp)
             print('processing %d/%d batch',i,CACD.total_images//self.batch_size)
-        sio.savemat('f.mat',{'feature':feature})
+        sio.savemat('f.mat',{'feature':feature,'label':idx})
 
 
 def triplet_sample(embeddings, nof_ids, nof_images_per_id, delta):

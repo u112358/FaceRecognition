@@ -123,10 +123,12 @@ class FileReader():
 
     def get_next_batch(self,batch_size):
         img_data = []
+        label = []
         for i in range(batch_size):
             if self.current_index<self.total_images:
                 path = self.prefix+self.path[self.index_list[self.current_index]][0]
                 img_data.append(self.read_jpeg_image(path))
+                label.append(self.index_list[self.current_index])
                 self.current_index+=1
         return img_data
 
