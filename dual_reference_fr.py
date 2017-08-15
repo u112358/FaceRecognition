@@ -39,14 +39,14 @@ class DualReferenceFR():
         self.paths = env_config
 
         """training parameters"""
-        self.learning_rate = 0.005
+        self.learning_rate = 0.01
         self.batch_size = 30
         self.feature_dim = 2000
         self.embedding_size = 128
         self.max_epoch = 20
-        self.delta = 0.1  # delta in hinge loss
-        self.nof_sampled_id = 60
-        self.nof_images_per_id = 10
+        self.delta = 0.2  # delta in hinge loss
+        self.nof_sampled_id = 40
+        self.nof_images_per_id = 15
         self.nof_sampled_age = 20
         self.nof_images_per_age = 20
 
@@ -226,7 +226,7 @@ class DualReferenceFR():
         saver.restore(self.sess,'./DRModel-76000')
         feature = []
         idx = []
-        CACD = fr.FileReader(self.paths.data_dir, 'cele.mat', contain_val=True, val_data_dir=self.paths.val_dir,
+        CACD = fr.FileReader(self.paths.data_dir, 'celenew.mat', contain_val=True, val_data_dir=self.paths.val_dir,
                              val_list=self.paths.val_list)
         for i in xrange(0,CACD.total_images//self.batch_size):
             data,label = CACD.get_next_batch(self.batch_size)
@@ -275,4 +275,4 @@ def get_rank_k(aff, k):
 if __name__ == '__main__':
     config = configurer.Configurer(parse_arguments(sys.argv[1:]).workplace)
     model = DualReferenceFR(config)
-    model.extract_feature()
+    model.train()
