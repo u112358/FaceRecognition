@@ -35,7 +35,7 @@ class Configurer():
     def __init__(self, workplace):
         """Inits SampleClass with blah."""
         subdir = datetime.strftime(datetime.now(),'%Y%m%d-%H%M%S')
-        self.log_dir = os.path.join('./log/quartet',subdir)
+        self.log_dir = os.path.join('/scratch/BingZhang/logs_all_in_one/quartet',subdir)
         if workplace =='lab':
             self.data_dir = '/home/bingzhang/Documents/Dataset/CACD/CACD2000/'
             self.model = '/home/bingzhang/Workspace/PycharmProjects/model/20170529-141612-52288'
